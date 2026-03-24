@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 export function UpdatePasswordForm() {
   const [password, setPassword]   = useState("");
@@ -89,7 +90,7 @@ export function UpdatePasswordForm() {
             placeholder="Mínimo 8 caracteres"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
           />
         </div>
 
@@ -108,7 +109,7 @@ export function UpdatePasswordForm() {
             placeholder="Repite tu contraseña"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
           />
         </div>
 
@@ -149,14 +150,14 @@ export function UpdatePasswordForm() {
           </p>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={status === "loading"}
-          className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
+          className="w-full mt-2"
         >
           {status === "loading" && <Spinner size="sm" />}
           {status === "loading" ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        </Button>
       </form>
     </div>
   );

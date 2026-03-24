@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 export function ForgotPasswordForm() {
   const [email, setEmail]   = useState("");
@@ -44,12 +45,9 @@ export function ForgotPasswordForm() {
           <span className="font-medium text-gray-700">{email}</span>, recibirás
           un enlace para restablecer tu contraseña.
         </p>
-        <Link
-          href="/login"
-          className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
-        >
-          ← Volver al inicio de sesión
-        </Link>
+        <Button variant="link" asChild className="text-sm font-medium px-0">
+          <Link href="/login">← Volver al inicio de sesión</Link>
+        </Button>
       </div>
     );
   }
@@ -81,7 +79,7 @@ export function ForgotPasswordForm() {
             placeholder="tu@correo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+            className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
           />
         </div>
 
@@ -91,23 +89,20 @@ export function ForgotPasswordForm() {
           </p>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={status === "loading"}
-          className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full"
         >
           {status === "loading" && <Spinner size="sm" />}
           {status === "loading" ? "Enviando…" : "Enviar enlace"}
-        </button>
+        </Button>
       </form>
 
       <div className="mt-6 text-center">
-        <Link
-          href="/login"
-          className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
-        >
-          ← Volver al inicio de sesión
-        </Link>
+        <Button variant="link" asChild className="text-sm font-medium px-0">
+          <Link href="/login">← Volver al inicio de sesión</Link>
+        </Button>
       </div>
     </div>
   );

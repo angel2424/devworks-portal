@@ -1,63 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-
-// Stat card component
-function StatCard({
-  label,
-  value,
-  sublabel,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sublabel: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className={`
-      rounded-lg border p-5 flex flex-col gap-3
-      ${accent
-        ? "bg-brand-50 border-brand-200"
-        : "bg-white border-gray-200"
-      }
-    `}>
-      <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">{label}</p>
-      <p className={`font-heading text-3xl font-semibold ${accent ? "text-brand-600" : "text-gray-900"}`}>
-        {value}
-      </p>
-      <p className="text-xs text-gray-400">{sublabel}</p>
-    </div>
-  );
-}
-
-// Quick action button
-function QuickAction({
-  label,
-  description,
-  href,
-  icon,
-}: {
-  label: string;
-  description: string;
-  href: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      className="flex items-start gap-4 p-4 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all group"
-    >
-      <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-brand-500 group-hover:bg-brand-50 transition-colors flex-shrink-0">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
-          {label}
-        </p>
-        <p className="text-xs text-gray-400 mt-0.5">{description}</p>
-      </div>
-    </a>
-  );
-}
+import StatCard from "@/components/dashboard/StatCard";
+import QuickAction from "@/components/dashboard/QuickAction";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+} from "@/components/ui/empty";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -75,10 +25,9 @@ export default async function DashboardPage() {
   };
 
   return (
-    <div className="px-8 py-8 max-w-6xl">
-      {/* Page header */}
+    <div className="px-8 py-8 max-w-6xl mx-auto">
       <div className="mb-10">
-        <h1 className="font-heading text-2xl font-semibold text-gray-900 mb-1">
+        <h1 className="font-heading text-2xl text-gray-900 mb-1">
           Hola, {firstName}
         </h1>
         <p className="text-sm text-gray-500">
@@ -86,7 +35,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <StatCard
           label="Proyectos activos"
@@ -106,33 +54,31 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Two-column layout */}
       <div className="grid grid-cols-5 gap-6">
-        {/* Recent activity - wider column */}
         <div className="col-span-3">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading text-base font-semibold text-gray-900">
+            <h2 className="font-heading text-base text-gray-900">
               Actividad reciente
             </h2>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            <EmptyState
-              icon={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              message="No hay actividad todavía"
-              sub="Aparecerá aquí cuando empieces a trabajar en proyectos."
-            />
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </EmptyMedia>
+                <EmptyTitle>No hay actividad todavía</EmptyTitle>
+                <EmptyDescription>Aparecerá aquí cuando empieces a trabajar en proyectos.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           </div>
         </div>
 
-        {/* Right column */}
         <div className="col-span-2 space-y-6">
-          {/* Quick actions */}
           <div>
-            <h2 className="font-heading text-base font-semibold text-gray-900 mb-4">
+            <h2 className="font-heading text-base text-gray-900 mb-4">
               Acciones rápidas
             </h2>
             <div className="space-y-2">
@@ -169,45 +115,26 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Upcoming */}
           <div>
-            <h2 className="font-heading text-base font-semibold text-gray-900 mb-4">
+            <h2 className="font-heading text-base text-gray-900 mb-4">
               Próximos vencimientos
             </h2>
-            <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-              <EmptyState
-                icon={
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                }
-                message="Sin vencimientos"
-                sub="Los vencimientos de tareas aparecerán aquí."
-              />
+            <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                  </EmptyMedia>
+                  <EmptyTitle>Sin vencimientos</EmptyTitle>
+                  <EmptyDescription>Los vencimientos de tareas aparecerán aquí.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  message,
-  sub,
-}: {
-  icon: React.ReactNode;
-  message: string;
-  sub: string;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
-        {icon}
-      </div>
-      <p className="text-sm font-medium text-gray-500 mb-1">{message}</p>
-      <p className="text-xs text-gray-400 max-w-xs">{sub}</p>
     </div>
   );
 }

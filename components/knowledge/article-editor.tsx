@@ -28,6 +28,7 @@ import {
 } from "novel";
 import type { KBArticle } from "@/lib/kb-offline";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -448,22 +449,13 @@ export function ArticleEditor({
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 flex-shrink-0">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors group"
-        >
-          <svg
-            className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 shrink-0">
+        <Button onClick={onBack} variant="ghost" size="sm" className="gap-1.5 text-gray-500 [&_svg]:hover:-translate-x-0.5">
+          <svg className="w-4 h-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
           Volver
-        </button>
+        </Button>
 
         <div className="flex items-center gap-4">
           <SaveIndicator status={effectiveStatus} />
@@ -477,7 +469,7 @@ export function ArticleEditor({
       {!isOnline && (
         <div className="flex items-center gap-2 px-5 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
           <svg
-            className="w-3.5 h-3.5 flex-shrink-0"
+            className="w-3.5 h-3.5 shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -502,7 +494,7 @@ export function ArticleEditor({
             value={title}
             onChange={handleTitleChange}
             placeholder="Título"
-            className="w-full text-4xl font-heading font-bold text-gray-900 placeholder:text-gray-200 border-none outline-none bg-transparent mb-8 leading-tight"
+            className="w-full text-4xl font-heading font-bold text-gray-900 placeholder:text-gray-200 border-none outline-hidden bg-transparent mb-8 leading-tight"
             style={{ fontFamily: "var(--font-heading)" }}
           />
 
@@ -513,7 +505,7 @@ export function ArticleEditor({
               extensions={extensions}
               className="min-h-[400px]"
               editorProps={{
-                attributes: { class: "focus:outline-none" },
+                attributes: { class: "focus:outline-hidden" },
                 handleKeyDown: (_view, event) =>
                   handleCommandNavigation(event) ?? false,
               }}
@@ -534,7 +526,7 @@ export function ArticleEditor({
                       }
                       className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer text-sm text-gray-700 hover:bg-gray-50 aria-selected:bg-brand-50 transition-colors"
                     >
-                      <span className="flex-shrink-0 w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center">
+                      <span className="shrink-0 w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center">
                         {item.icon}
                       </span>
                       <div className="min-w-0">
@@ -559,7 +551,7 @@ export function ArticleEditor({
                 <ItalicItem />
                 <UnderlineItem />
                 <StrikeItem />
-                <div className="w-px h-5 bg-gray-200 mx-0.5 flex-shrink-0" />
+                <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />
                 <CodeItem />
                 <HighlightItem />
               </EditorBubble>

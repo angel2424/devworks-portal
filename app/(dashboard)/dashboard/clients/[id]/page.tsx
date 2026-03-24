@@ -11,7 +11,8 @@ import {
   ClientDetailTabs,
   type ProjectItem,
   type TaskItem,
-} from "@/components/dashboard/clients/client-detail-tabs";
+} from "@/components/dashboard/clients/details/Tabs";
+import { Pencil } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ export default async function ClientDetailPage({
   };
 
   return (
-    <div className="px-8 py-8 max-w-6xl">
+    <div className="px-8 py-8 max-w-6xl mx-auto">
       {/* ── Breadcrumb ── */}
       <nav className="flex items-center gap-2 text-sm text-gray-400 mb-7">
         <Link
@@ -176,13 +177,13 @@ export default async function ClientDetailPage({
         <div className="flex items-start justify-between gap-4">
           {/* Avatar + name */}
           <div className="flex items-center gap-4">
-            <Avatar className="h-14 w-14 rounded-xl flex-shrink-0">
-              <AvatarFallback className="rounded-xl text-lg font-semibold bg-brand-50 text-brand-600">
+            <Avatar className="h-14 w-14 rounded-xl shrink-0">
+              <AvatarFallback className="rounded-xl text-lg bg-brand-50 text-brand-600">
                 {initials(client.name)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="font-heading text-2xl font-semibold text-gray-900 mb-1">
+              <h1 className="font-heading text-2xl text-gray-900 ">
                 {client.name}
               </h1>
               {client.company && (
@@ -192,7 +193,7 @@ export default async function ClientDetailPage({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge
               variant="outline"
               className={`text-xs font-medium px-2.5 py-1 ${statusBadgeClass(
@@ -201,8 +202,11 @@ export default async function ClientDetailPage({
             >
               {client.status?.label ?? "Sin estado"}
             </Badge>
-            <Button variant="outline" size="sm" className="h-8 text-sm border-gray-200" asChild>
-              <Link href={`/dashboard/clients/${id}/edit`}>Editar</Link>
+            <Button variant="outline" size="sm" className="text-sm border-gray-200" asChild>
+              <Link href={`/dashboard/clients/${id}/edit`} className="text-xs">
+                <Pencil />
+                Editar
+            </Link>
             </Button>
           </div>
         </div>
@@ -210,17 +214,14 @@ export default async function ClientDetailPage({
         <Separator className="my-5" />
 
         {/* Contact info grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
           <InfoField
             label="Email"
             value={
               client.email ? (
-                <a
-                  href={`mailto:${client.email}`}
-                  className="text-brand-600 hover:underline"
-                >
-                  {client.email}
-                </a>
+                <Button variant="link" asChild className="px-0 h-auto text-sm">
+                  <a href={`mailto:${client.email}`}>{client.email}</a>
+                </Button>
               ) : (
                 "—"
               )
@@ -230,9 +231,9 @@ export default async function ClientDetailPage({
             label="Teléfono"
             value={
               client.phone ? (
-                <a href={`tel:${client.phone}`} className="hover:underline">
-                  {client.phone}
-                </a>
+                <Button variant="link" asChild className="px-0 h-auto text-sm">
+                  <a href={`tel:${client.phone}`}>{client.phone}</a>
+                </Button>
               ) : (
                 "—"
               )

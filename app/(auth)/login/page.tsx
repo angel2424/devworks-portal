@@ -14,9 +14,6 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true); // true while we inspect the URL hash
   const router = useRouter();
 
-  // Handle Supabase implicit-flow redirects (invite / recovery / magic link).
-  // Supabase appends #access_token=...&type=invite to the Site URL when it can't
-  // use the PKCE token_hash flow (e.g. the email template hasn't been customized).
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash) {
@@ -24,7 +21,7 @@ export default function LoginPage() {
       return;
     }
 
-    const params = new URLSearchParams(hash.slice(1)); // strip the leading "#"
+    const params = new URLSearchParams(hash.slice(1));
     const accessToken  = params.get("access_token");
     const refreshToken = params.get("refresh_token");
     const type         = params.get("type");
@@ -34,7 +31,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Set the session from the tokens in the hash, then redirect.
     const supabase = createClient();
     supabase.auth
       .setSession({ access_token: accessToken, refresh_token: refreshToken ?? "" })
@@ -43,14 +39,11 @@ export default function LoginPage() {
           setChecking(false);
           return;
         }
-        // Clear the hash so tokens don't stay in the URL
         window.history.replaceState(null, "", window.location.pathname);
 
         if (type === "invite" || type === "recovery") {
-          // Invite or password reset → set password first
           router.replace("/auth/update-password");
         } else {
-          // Already authenticated → dashboard layout handles role redirect
           router.replace("/dashboard");
         }
       });
@@ -69,13 +62,9 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-
-    // Always send to /dashboard — the server layout checks the role from
-    // the profiles table and redirects to /portal if the user isn't team.
     router.push("/dashboard");
   }
 
-  // Show a neutral loading state while we process the hash
   if (checking) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -89,17 +78,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-24">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md ">
 
         {/* Logotype */}
-        <div className="mb-12">
-          <span className="font-heading text-2xl font-semibold tracking-tight text-gray-900">
-            DevWorks<span className="text-brand-500">.</span>
-          </span>
-        </div>
+        <img src="https://storage.googleapis.com/dw-agency/dw-gray-logo.svg" alt="DevWorks Studio | Piedras Negras" className="w-30 h-6 object-contain mb-3 mx-auto" />
 
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl font-semibold text-gray-900 mb-2">
+        <div className="mb-12 text-center">
+          <h1 className="font-heading text-2xl text-gray-900 mb-1">
             Iniciar sesión
           </h1>
           <p className="text-sm text-gray-500">
@@ -111,7 +96,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="email"
-              className="block text-xs font-medium text-gray-600 mb-1.5 uppercase tracking-wider"
+              className="block text-sm font-normal text-gray-500 mb-3"
             >
               Correo electrónico
             </label>
@@ -124,21 +109,21 @@ export default function LoginPage() {
               placeholder="tu@correo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
             />
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-3">
               <label
                 htmlFor="password"
-                className="block text-xs font-medium text-gray-600 uppercase tracking-wider"
+                className="block text-sm font-normal text-gray-500"
               >
                 Contraseña
               </label>
               <Link
                 href="/auth/forgot-password"
-                className="text-xs text-brand-600 hover:text-brand-700 transition-colors"
+                className="text-xs text-brand-600 hover:text-brand-400 transition-colors"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -151,7 +136,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
             />
           </div>
 
@@ -164,14 +149,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
+            className="py-3 px-12 mx-auto bg-brand-500 hover:bg-brand-600 text-white text-base font-medium rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-8 flex items-center justify-center gap-2 cursor-pointer"
           >
             {loading && <Spinner size="sm" />}
             {loading ? "Ingresando…" : "Iniciar sesión"}
           </button>
         </form>
 
-        <p className="mt-8 text-xs text-gray-400 text-center">
+        <p className="mt-8 text-sm text-gray-400 text-center">
           ¿No tienes acceso? Solicita una invitación al equipo.
         </p>
       </div>

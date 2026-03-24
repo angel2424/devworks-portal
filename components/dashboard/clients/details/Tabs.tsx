@@ -138,10 +138,10 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
   return (
     <Tabs defaultValue="overview" className="space-y-6">
       <TabsList className="h-9 bg-gray-100 p-1 rounded-lg">
-        <TabsTrigger value="overview" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <TabsTrigger value="overview" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
           Resumen
         </TabsTrigger>
-        <TabsTrigger value="projects" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <TabsTrigger value="projects" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
           Proyectos
           {projects.length > 0 && (
             <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 data-[state=active]:bg-brand-100 data-[state=active]:text-brand-700 rounded-full px-1.5 py-0.5">
@@ -149,7 +149,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
             </span>
           )}
         </TabsTrigger>
-        <TabsTrigger value="tasks" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <TabsTrigger value="tasks" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
           Tareas
           {tasks.length > 0 && (
             <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
@@ -157,7 +157,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
             </span>
           )}
         </TabsTrigger>
-        <TabsTrigger value="payments" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <TabsTrigger value="payments" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
           Pagos
         </TabsTrigger>
       </TabsList>
@@ -238,7 +238,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
 
         {/* Pending payments placeholder */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          <h3 className="text-base  text-gray-700 mb-3">
             Pagos pendientes
           </h3>
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
@@ -303,7 +303,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
                     </div>
                     <Badge
                       variant="outline"
-                      className={`text-xs flex-shrink-0 ${statusBadgeClass(project.status.color)}`}
+                      className={`text-xs shrink-0 ${statusBadgeClass(project.status.color)}`}
                     >
                       {project.status.label}
                     </Badge>
@@ -408,7 +408,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
                     </p>
                     <Badge
                       variant="outline"
-                      className={`text-xs flex-shrink-0 ${statusBadgeClass(task.status.color)}`}
+                      className={`text-xs shrink-0 ${statusBadgeClass(task.status.color)}`}
                     >
                       {task.status.label}
                     </Badge>
@@ -431,7 +431,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
                     </Badge>
                     {task.assigned && (
                       <div className="flex items-center gap-1.5">
-                        <Avatar className="h-4 w-4 flex-shrink-0">
+                        <Avatar className="h-4 w-4 shrink-0">
                           <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
                             {initials(task.assigned.full_name)}
                           </AvatarFallback>
@@ -518,7 +518,7 @@ export function ClientDetailTabs({ projects, tasks }: Props) {
                       <TableCell className="py-3.5">
                         {task.assigned ? (
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-5 w-5 flex-shrink-0">
+                            <Avatar className="h-5 w-5 shrink-0">
                               <AvatarFallback className="text-[10px] bg-brand-100 text-brand-700">
                                 {initials(task.assigned.full_name)}
                               </AvatarFallback>

@@ -1,12 +1,11 @@
 export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
-import { ClientsTable, type ClientRow, type StatusOption, type TeamMember } from "@/components/dashboard/clients/clients-table";
+import { ClientsTable, type ClientRow, type StatusOption, type TeamMember } from "@/components/dashboard/clients/Table";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
 
-  // Fetch all clients with status + assigned team member
   const { data: rawClients } = await supabase
     .from("clients")
     .select(`
@@ -22,21 +21,18 @@ export default async function ClientsPage() {
     `)
     .order("created_at", { ascending: false });
 
-  // Status options for the filter (client pipeline only)
   const { data: rawStatuses } = await supabase
     .from("catalog_status")
     .select("id, label, color")
     .eq("category", "client")
     .order("order_index");
 
-  // Team members for the assigned filter
   const { data: rawTeam } = await supabase
     .from("profiles")
     .select("id, full_name")
     .eq("role", "team")
     .order("full_name");
 
-  // Normalize — Supabase returns joined rows as objects but TS types them as arrays
   const clients: ClientRow[] = (rawClients ?? []).map((c: any) => ({
     ...c,
     status: Array.isArray(c.status) ? c.status[0] : c.status,
@@ -50,9 +46,8 @@ export default async function ClientsPage() {
 
   return (
     <div className="px-8 py-8 max-w-7xl">
-      {/* Page header */}
       <div className="mb-8">
-        <h1 className="font-heading text-2xl font-semibold text-gray-900 mb-1">
+        <h1 className="font-heading text-2xl text-gray-900">
           CRM — Clientes
         </h1>
         <p className="text-sm text-gray-500">

@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { NewClientForm } from "@/components/dashboard/clients/new-client-form";
-import type { StatusOption, TeamMember } from "@/components/dashboard/clients/new-client-form";
+import { NewClientForm } from "@/components/dashboard/clients/new/Form";
+import type { StatusOption, TeamMember } from "@/components/dashboard/clients/new/Form";
 
 export default async function NewClientPage() {
   const supabase = await createClient();
@@ -28,12 +28,11 @@ export default async function NewClientPage() {
     (rawStatuses ?? []).find((s: any) => s.is_default) ?? rawStatuses?.[0];
 
   return (
-    <div className="px-8 py-8 max-w-2xl">
+    <div className="px-8 py-8 max-w-3xl mx-auto">
 
-      {/* ── Back link ── */}
       <Link
         href="/dashboard/clients"
-        className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-6 transition-colors group"
+        className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-600 mb-6 transition-colors group"
       >
         <svg
           className="w-3 h-3 transition-transform group-hover:-translate-x-0.5"
@@ -48,8 +47,8 @@ export default async function NewClientPage() {
       </Link>
 
       {/* ── Page header ── */}
-      <div className="mb-7">
-        <h1 className="font-heading text-2xl font-semibold text-gray-900 mb-1">
+      <div className="mb-7 px-2">
+        <h1 className="font-heading text-2xl text-gray-900">
           Nuevo cliente
         </h1>
         <p className="text-sm text-gray-500">

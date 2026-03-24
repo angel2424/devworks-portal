@@ -29,6 +29,7 @@ import {
 } from "@/app/(dashboard)/dashboard/knowledge/actions";
 import { ArticleEditor } from "@/components/knowledge/article-editor";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,9 +99,9 @@ function NewFolderDialog({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs">
       <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm mx-4 p-6">
-        <h3 className="font-heading font-semibold text-gray-900 mb-4">
+        <h3 className="font-heading text-gray-900 mb-4">
           Nueva carpeta
         </h3>
         <input
@@ -113,22 +114,11 @@ function NewFolderDialog({
             if (e.key === "Escape") onCancel();
           }}
           placeholder="Nombre de la carpeta"
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-brand-400 focus:border-transparent"
         />
         <div className="flex gap-2 mt-4 justify-end">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => name.trim() && onConfirm(name)}
-            disabled={!name.trim()}
-            className="px-4 py-1.5 text-sm font-medium bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Crear
-          </button>
+          <Button variant="ghost" size="sm" onClick={onCancel}>Cancelar</Button>
+          <Button size="sm" onClick={() => name.trim() && onConfirm(name)} disabled={!name.trim()}>Crear</Button>
         </div>
       </div>
     </div>
@@ -154,9 +144,9 @@ function RenameDialog({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs">
       <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm mx-4 p-6">
-        <h3 className="font-heading font-semibold text-gray-900 mb-4">
+        <h3 className="font-heading text-gray-900 mb-4">
           Renombrar carpeta
         </h3>
         <input
@@ -168,22 +158,11 @@ function RenameDialog({
             if (e.key === "Enter" && name.trim()) onConfirm(name);
             if (e.key === "Escape") onCancel();
           }}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-brand-400 focus:border-transparent"
         />
         <div className="flex gap-2 mt-4 justify-end">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => name.trim() && onConfirm(name)}
-            disabled={!name.trim()}
-            className="px-4 py-1.5 text-sm font-medium bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-40 transition-colors"
-          >
-            Guardar
-          </button>
+          <Button variant="ghost" size="sm" onClick={onCancel}>Cancelar</Button>
+          <Button size="sm" onClick={() => name.trim() && onConfirm(name)} disabled={!name.trim()}>Guardar</Button>
         </div>
       </div>
     </div>
@@ -227,7 +206,7 @@ function FolderItem({
       <button
         onClick={onClick}
         className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
+          "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left cursor-pointer",
           isSelected
             ? "bg-brand-50 text-gray-900 font-medium"
             : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -236,7 +215,7 @@ function FolderItem({
         {/* Folder icon */}
         <svg
           className={cn(
-            "w-4 h-4 flex-shrink-0 transition-colors",
+            "w-4 h-4 shrink-0 transition-colors",
             isSelected ? "text-brand-500" : "text-gray-400"
           )}
           fill="none"
@@ -271,40 +250,37 @@ function FolderItem({
       {/* Context menu trigger */}
       {isOnline && (
         <div ref={menuRef} className="absolute right-1 top-1/2 -translate-y-1/2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen((v) => !v);
-            }}
-            className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
           >
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <circle cx="10" cy="4" r="1.5" />
               <circle cx="10" cy="10" r="1.5" />
               <circle cx="10" cy="16" r="1.5" />
             </svg>
-          </button>
+          </Button>
 
           {menuOpen && (
             <div className="absolute right-0 top-7 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onRename();
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start rounded-none text-gray-700"
+                onClick={() => { setMenuOpen(false); onRename(); }}
               >
                 Renombrar
-              </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete();
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              </Button>
+              <Button
+                variant="ghost-destructive"
+                size="sm"
+                className="w-full justify-start rounded-none"
+                onClick={() => { setMenuOpen(false); onDelete(); }}
               >
                 Eliminar
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -359,7 +335,7 @@ function ArticleRow({
       {/* Doc icon */}
       <div
         className={cn(
-          "flex-shrink-0 mt-0.5 w-7 h-7 rounded-md flex items-center justify-center",
+          "shrink-0 mt-0.5 w-7 h-7 rounded-md flex items-center justify-center",
           isSelected ? "bg-brand-100" : "bg-gray-100"
         )}
       >
@@ -400,31 +376,32 @@ function ArticleRow({
       {isOnline && (
         <div
           ref={menuRef}
-          className="flex-shrink-0"
+          className="shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={() => setMenuOpen((v) => !v)}
-            className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
           >
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <circle cx="10" cy="4" r="1.5" />
               <circle cx="10" cy="10" r="1.5" />
               <circle cx="10" cy="16" r="1.5" />
             </svg>
-          </button>
+          </Button>
 
           {menuOpen && (
             <div className="absolute right-3 top-10 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete();
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              <Button
+                variant="ghost-destructive"
+                size="sm"
+                className="w-full justify-start rounded-none"
+                onClick={() => { setMenuOpen(false); onDelete(); }}
               >
                 Eliminar nota
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -441,6 +418,7 @@ export function KBBrowser() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<KBArticle | null>(null);
   const [view, setView] = useState<View>("list");
+  const [mobilePanel, setMobilePanel] = useState<"folders" | "articles" | "editor">("folders");
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
@@ -616,6 +594,7 @@ export function KBBrowser() {
       await addCachedArticle(article);
       setSelectedArticle(article);
       setView("editor");
+      setMobilePanel("editor");
     } catch (e) {
       console.error(e);
     }
@@ -632,6 +611,7 @@ export function KBBrowser() {
       if (selectedArticle?.id === id) {
         setSelectedArticle(null);
         setView("list");
+        setMobilePanel("articles");
       }
     } catch (e) {
       console.error(e);
@@ -707,6 +687,21 @@ export function KBBrowser() {
 
   return (
     <>
+      {/* Page header — hidden on mobile when editing */}
+      <div className={cn(
+        "px-6 py-5 border-b border-gray-200 bg-white shrink-0",
+        mobilePanel === "editor" ? "hidden md:block" : "block"
+      )}>
+        <h1 className="font-heading text-2xl text-gray-900 leading-none mb-1">
+          Knowledge Base
+        </h1>
+        <p className="text-sm text-gray-500">
+          Documentación y notas del equipo. Disponible sin conexión.
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-hidden flex flex-col">
+
       {showNewFolder && (
         <NewFolderDialog
           onConfirm={handleNewFolder}
@@ -724,31 +719,37 @@ export function KBBrowser() {
 
       <div className="flex h-full">
         {/* ── Left sidebar: Folder tree ── */}
-        <aside className="w-56 flex-shrink-0 border-r border-gray-200 bg-white flex flex-col">
+        <aside className={cn(
+          "shrink-0 border-r border-gray-200 bg-white flex-col w-full md:w-56",
+          mobilePanel === "folders" ? "flex" : "hidden",
+          "md:flex"
+        )}>
           {/* Sidebar header */}
           <div className="flex items-center justify-between px-3 py-3 border-b border-gray-100">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <span className="text-xs text-gray-400 uppercase tracking-wider">
               Carpetas
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               onClick={() => isOnline && setShowNewFolder(true)}
               disabled={!isOnline}
               title="Nueva carpeta"
-              className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-brand-500 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="hover:text-brand-500 hover:bg-brand-50 rounded-md"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Folder list */}
           <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
             {/* "Sin carpeta" entry */}
             <button
-              onClick={() => setSelectedFolderId(null)}
+              onClick={() => { setSelectedFolderId(null); setMobilePanel("articles"); }}
               className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
+                "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left cursor-pointer",
                 selectedFolderId === null
                   ? "bg-brand-50 text-gray-900 font-medium"
                   : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -756,7 +757,7 @@ export function KBBrowser() {
             >
               <svg
                 className={cn(
-                  "w-4 h-4 flex-shrink-0",
+                  "w-4 h-4 shrink-0",
                   selectedFolderId === null ? "text-brand-500" : "text-gray-300"
                 )}
                 fill="none"
@@ -792,7 +793,7 @@ export function KBBrowser() {
                 isSelected={selectedFolderId === folder.id}
                 articleCount={articleCountByFolder[folder.id] ?? 0}
                 isOnline={isOnline}
-                onClick={() => setSelectedFolderId(folder.id)}
+                onClick={() => { setSelectedFolderId(folder.id); setMobilePanel("articles"); }}
                 onRename={() => setRenaming(folder)}
                 onDelete={() => handleDeleteFolder(folder.id)}
               />
@@ -807,13 +808,27 @@ export function KBBrowser() {
         </aside>
 
         {/* ── Right panel ── */}
-        <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
+        <div className={cn(
+          "flex-col min-w-0 bg-gray-50 flex-1",
+          mobilePanel !== "folders" ? "flex" : "hidden",
+          "md:flex"
+        )}>
           {view === "list" ? (
             <>
               {/* Article list header */}
-              <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">
-                  <h2 className="font-heading font-semibold text-gray-900 text-sm">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setMobilePanel("folders")}
+                    className="md:hidden mr-1 rounded-md"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                  </Button>
+                  <h2 className="font-heading text-gray-900 text-sm">
                     {selectedFolderId
                       ? folders.find((f) => f.id === selectedFolderId)?.name ??
                         "Carpeta"
@@ -830,26 +845,12 @@ export function KBBrowser() {
                   />
                 </div>
 
-                <button
-                  onClick={handleNewArticle}
-                  disabled={!isOnline}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
+                <Button size="sm" onClick={handleNewArticle} disabled={!isOnline}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   Nueva nota
-                </button>
+                </Button>
               </div>
 
               {/* Article list */}
@@ -896,6 +897,7 @@ export function KBBrowser() {
                         onClick={() => {
                           setSelectedArticle(article);
                           setView("editor");
+                          setMobilePanel("editor");
                         }}
                         onDelete={() => handleDeleteArticle(article.id)}
                       />
@@ -910,12 +912,14 @@ export function KBBrowser() {
                 article={selectedArticle}
                 isOnline={isOnline}
                 hasPending={hasPending}
-                onBack={() => setView("list")}
+                onBack={() => { setView("list"); setMobilePanel("articles"); }}
                 onSave={handleSaveArticle}
               />
             )
           )}
         </div>
+      </div>
+
       </div>
     </>
   );

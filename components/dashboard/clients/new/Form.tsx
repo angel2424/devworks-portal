@@ -39,7 +39,7 @@ type Props = {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    <Label className="text-sm font-normal text-gray-500">
       {children}
     </Label>
   );
@@ -48,8 +48,6 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 function FieldError({ message }: { message: string }) {
   return <p className="text-xs text-red-600 mt-1">{message}</p>;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props) {
   const router = useRouter();
@@ -120,13 +118,12 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
 
         {/* ── Contact info ── */}
-        <div className="px-6 py-5 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        <div className="px-6 py-10 border-b border-gray-100">
+          <p className="text-sm font-bold text-brand-500 uppercase">
             Información de contacto
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 my-4">
 
-            {/* Name */}
             <div className="space-y-1.5">
               <FieldLabel>Nombre completo *</FieldLabel>
               <Input
@@ -139,7 +136,6 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
               {errors.name && <FieldError message={errors.name} />}
             </div>
 
-            {/* Company */}
             <div className="space-y-1.5">
               <FieldLabel>Empresa</FieldLabel>
               <Input
@@ -181,8 +177,8 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
         </div>
 
         {/* ── CRM fields ── */}
-        <div className="px-6 py-5 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        <div className="px-6 py-10 border-b border-gray-100">
+          <p className="text-sm font-bold text-brand-500 uppercase mb-4">
             Pipeline CRM
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
@@ -225,8 +221,8 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
         </div>
 
         {/* ── Notes ── */}
-        <div className="px-6 py-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+        <div className="px-6 py-10">
+          <p className="text-sm font-bold text-brand-500 uppercase mb-4">
             Notas internas
           </p>
           <textarea
@@ -235,7 +231,7 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
             placeholder="Contexto del primer contacto, referencias, observaciones…"
             rows={4}
             disabled={isPending}
-            className="w-full resize-none rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-400 disabled:opacity-50 transition-colors"
+            className="w-full resize-none rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500/20 focus-visible:border-brand-400 disabled:opacity-50 transition-colors"
           />
         </div>
       </div>

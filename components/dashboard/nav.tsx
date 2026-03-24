@@ -75,7 +75,7 @@ export function DashboardNav() {
               )}
             >
               <span className={cn(
-                "flex-shrink-0 transition-colors",
+                "shrink-0 transition-colors",
                 isActive ? "text-brand-500" : "text-gray-400 group-hover:text-gray-500"
               )}>
                 {item.icon}

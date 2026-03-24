@@ -24,8 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type StatusOption = {
   id: string;
   label: string;
@@ -54,8 +52,6 @@ type Props = {
   statuses: StatusOption[];
   teamMembers: TeamMember[];
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusBadgeClass(color: string | null) {
   switch (color) {
@@ -94,8 +90,6 @@ function initials(name: string | null) {
     .slice(0, 2);
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function ClientsTable({ clients, statuses, teamMembers }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -104,7 +98,6 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedFilter, setAssignedFilter] = useState("all");
 
-  // Clear the pending row once navigation settles
   useEffect(() => {
     if (!isPending) setPendingId(null);
   }, [isPending]);
@@ -148,13 +141,11 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Filter bar ── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48 max-w-72">
+    <div className="space-y-8">
+      <div className="flex flex-col xl:flex-row items-center gap-5">
+        <div className="relative flex-1 min-w-48 w-full">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/3 w-3.5 h-3.5 text-gray-400 pointer-events-none"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -174,9 +165,9 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
           />
         </div>
 
-        {/* Status filter */}
+    <div className="flex items-center gap-4 w-full">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-40 text-sm bg-white border-gray-200">
+          <SelectTrigger className="h-9 flex-1 text-sm bg-white border-gray-200">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -189,9 +180,8 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
           </SelectContent>
         </Select>
 
-        {/* Assigned filter */}
         <Select value={assignedFilter} onValueChange={setAssignedFilter}>
-          <SelectTrigger className="h-9 w-44 text-sm bg-white border-gray-200">
+          <SelectTrigger className="h-9 flex-1 text-sm bg-white border-gray-200">
             <SelectValue placeholder="Responsable" />
           </SelectTrigger>
           <SelectContent>
@@ -204,8 +194,8 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
             ))}
           </SelectContent>
         </Select>
+    </div>
 
-        {/* Clear filters */}
         {hasFilters && (
           <Button
             variant="ghost"
@@ -217,13 +207,9 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
           </Button>
         )}
 
-        {/* Spacer + count */}
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-gray-400">
-            {filtered.length}{" "}
-            {filtered.length === 1 ? "contacto" : "contactos"}
-          </span>
-          <Button asChild size="sm" className="h-9 bg-brand-500 hover:bg-brand-600 text-white">
+        <div className="ml-auto flex flex-col lg:flex-row gap-6">
+
+          <Button asChild size="lg" className=" bg-brand-500 hover:bg-brand-600 text-white">
             <Link href="/dashboard/clients/new">
               <svg
                 className="w-3.5 h-3.5 mr-1.5"
@@ -244,8 +230,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
         </div>
       </div>
 
-      {/* ── Mobile cards ── */}
-      <div className="md:hidden space-y-2">
+      <div className="md:hidden space-y-6">
         {filtered.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white flex flex-col items-center justify-center py-14 text-center px-6">
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
@@ -268,7 +253,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                 key={client.id}
                 onClick={() => !isPending && handleRowClick(client.id)}
                 disabled={isPending}
-                className={`w-full text-left rounded-lg border bg-white p-4 transition-all active:scale-[0.99] ${
+                className={`w-full text-left rounded-lg border bg-white p-4 transition-all cursor-pointer active:scale-[0.99] ${
                   isLoading
                     ? "border-brand-200 bg-brand-50/60 opacity-75"
                     : "border-gray-200 hover:border-brand-200 hover:bg-brand-50/30"
@@ -276,7 +261,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <Avatar className="h-8 w-8 flex-shrink-0">
+                    <Avatar className="h-8 w-8 shrink-0">
                       <AvatarFallback className="text-xs font-medium bg-gray-100 text-gray-600">
                         {initials(client.name)}
                       </AvatarFallback>
@@ -288,7 +273,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     {isLoading && <Spinner size="xs" className="text-brand-400" />}
                     <Badge
                       variant="outline"
@@ -300,12 +285,9 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                 </div>
 
                 <div className="mt-3 flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-                  {client.email && (
-                    <span className="truncate max-w-[160px]">{client.email}</span>
-                  )}
                   {client.assigned && (
                     <div className="flex items-center gap-1.5">
-                      <Avatar className="h-4 w-4 flex-shrink-0">
+                      <Avatar className="h-4 w-4 shrink-0">
                         <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
                           {initials(client.assigned.full_name)}
                         </AvatarFallback>
@@ -320,10 +302,13 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
           })
         )}
       </div>
+    <span className="text-sm text-gray-400 px-2">
+        {filtered.length}{" "}
+        {filtered.length === 1 ? "contacto" : "contactos"}
+        </span>
 
-      {/* ── Desktop table ── */}
       <div className="hidden md:block">
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
@@ -338,9 +323,6 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
               </TableHead>
               <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Responsable
-              </TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Contacto
               </TableHead>
               <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pr-5">
                 Registrado
@@ -396,7 +378,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                   {/* Name */}
                   <TableCell className="pl-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-7 w-7 flex-shrink-0">
+                      <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className="text-[11px] font-medium bg-gray-100 text-gray-600">
                           {initials(client.name)}
                         </AvatarFallback>
@@ -435,7 +417,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                   <TableCell className="py-3.5">
                     {client.assigned ? (
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5 flex-shrink-0">
+                        <Avatar className="h-5 w-5 shrink-0">
                           <AvatarFallback className="text-[10px] bg-brand-100 text-brand-700">
                             {initials(client.assigned.full_name)}
                           </AvatarFallback>
@@ -447,25 +429,6 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
                     ) : (
                       <span className="text-sm text-gray-300">Sin asignar</span>
                     )}
-                  </TableCell>
-
-                  {/* Contact */}
-                  <TableCell className="py-3.5">
-                    <div className="flex flex-col gap-0.5">
-                      {client.email && (
-                        <span className="text-xs text-gray-500">
-                          {client.email}
-                        </span>
-                      )}
-                      {client.phone && (
-                        <span className="text-xs text-gray-400">
-                          {client.phone}
-                        </span>
-                      )}
-                      {!client.email && !client.phone && (
-                        <span className="text-xs text-gray-300">—</span>
-                      )}
-                    </div>
                   </TableCell>
 
                   {/* Date */}

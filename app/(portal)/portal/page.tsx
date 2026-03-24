@@ -81,7 +81,7 @@ export default async function PortalPage() {
             key={card.label}
             className="rounded-lg border border-gray-100 bg-white p-5 flex gap-4"
           >
-            <div className="w-8 h-8 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
+            <div className="w-8 h-8 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
               {card.icon}
             </div>
             <div>

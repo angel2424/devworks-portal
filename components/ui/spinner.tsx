@@ -15,7 +15,7 @@ export function Spinner({ className, size = "sm" }: SpinnerProps) {
   return (
     <div
       className={cn(
-        "rounded-full border-current/25 border-t-current animate-spin flex-shrink-0",
+        "rounded-full border-current/25 border-t-current animate-spin shrink-0",
         sizeClass,
         className
       )}
