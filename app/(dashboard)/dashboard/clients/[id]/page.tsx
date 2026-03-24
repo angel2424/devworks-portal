@@ -103,7 +103,7 @@ export default async function ClientDetailPage({
     .eq("client_id", id)
     .order("created_at", { ascending: false });
 
-  const projects: ProjectItem[] = (rawProjects ?? []).map((p: any) => ({
+  const projects: ProjectItem[] = (rawProjects ?? []).map((p) => ({
     ...p,
     status: Array.isArray(p.status) ? p.status[0] : p.status,
   }));
@@ -128,7 +128,7 @@ export default async function ClientDetailPage({
       .in("project_id", projectIds)
       .order("due_date", { ascending: true, nullsFirst: false });
 
-    tasks = (rawTasks ?? []).map((t: any) => ({
+    tasks = (rawTasks ?? []).map((t) => ({
       ...t,
       status: Array.isArray(t.status) ? t.status[0] : t.status,
       priority: Array.isArray(t.priority) ? t.priority[0] : t.priority,

@@ -33,7 +33,7 @@ export default async function ClientsPage() {
     .eq("role", "team")
     .order("full_name");
 
-  const clients: ClientRow[] = (rawClients ?? []).map((c: any) => ({
+  const clients: ClientRow[] = (rawClients ?? []).map((c) => ({
     ...c,
     status: Array.isArray(c.status) ? c.status[0] : c.status,
     assigned: Array.isArray(c.assigned)

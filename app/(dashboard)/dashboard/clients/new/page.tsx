@@ -25,7 +25,7 @@ export default async function NewClientPage() {
 
   // Pick the default status or fall back to the first one
   const defaultStatus =
-    (rawStatuses ?? []).find((s: any) => s.is_default) ?? rawStatuses?.[0];
+    (rawStatuses ?? []).find((s) => s.is_default) ?? rawStatuses?.[0];
 
   return (
     <div className="px-8 py-8 max-w-3xl mx-auto">
