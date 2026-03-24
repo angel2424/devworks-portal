@@ -19,9 +19,7 @@
   --brand-700: #122c87;
   --brand-800: #0c1d5a;
   --brand-900: #060f2d;
-  --brand-950: #040a1f;
 
-    /* Light mode (used in auth pages, portal areas) */
     --background:         0 0% 98%;
     --foreground:         0 0% 8%;
     --card:               0 0% 100%;
