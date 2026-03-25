@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 
-// ─── VAPID setup ───────────────────────────────────────────────────────────────
-
-webpush.setVapidDetails(
-  "mailto:hello@devworks.studio",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
-
 // ─── Admin client (bypasses RLS) ──────────────────────────────────────────────
 
 function adminClient() {
@@ -42,6 +34,12 @@ export async function GET(req: NextRequest) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  webpush.setVapidDetails(
+    "mailto:hello@devworks.studio",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
+  );
 
   const admin = adminClient();
   const now = new Date();

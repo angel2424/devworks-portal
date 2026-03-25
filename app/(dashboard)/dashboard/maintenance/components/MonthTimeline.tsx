@@ -31,7 +31,7 @@ export function MonthTimeline({ months, selectedMonthId, planId }: Props) {
         Meses del plan
       </p>
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {months.map((m, i) => {
+        {months.map((m) => {
           const isSelected = m.id === selectedMonthId;
           const isCompleted = m.status === "completed";
           const isArchived = m.status === "archived";

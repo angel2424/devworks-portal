@@ -56,7 +56,6 @@ export function NotificationBell({ userId }: Props) {
   const [isPending, startTransition] = useTransition();
   const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
@@ -70,6 +69,7 @@ export function NotificationBell({ userId }: Props) {
 
   // ─── Realtime — new notifications arrive live ─────────────────────────────
   useEffect(() => {
+    const supabase = createClient();
     const channel = supabase
       .channel(`notifications:${userId}`)
       .on(

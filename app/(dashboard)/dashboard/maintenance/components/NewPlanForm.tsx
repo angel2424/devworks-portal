@@ -231,7 +231,6 @@ export function NewPlanForm({ clients, projects }: Props) {
 // ─── TypeCard ─────────────────────────────────────────────────────────────────
 
 function TypeCard({
-  value,
   selected,
   onSelect,
   title,

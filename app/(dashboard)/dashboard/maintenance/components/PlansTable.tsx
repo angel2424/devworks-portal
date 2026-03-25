@@ -85,7 +85,7 @@ function getCurrentMonth(months: PlanMonth[]) {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function PlansTable({ plans, statuses, clients: _clients }: Props) {
+export function PlansTable({ plans, statuses }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);

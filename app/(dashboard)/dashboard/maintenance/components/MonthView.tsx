@@ -223,7 +223,6 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
         monthNumber={month.month_number}
         reportGeneratedAt={month.report_generated_at}
         reportStoragePath={month.report_storage_path}
-        planId={planId}
         clientName={clientName}
         tasks={month.tasks}
         metrics={month.metrics}

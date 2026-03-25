@@ -15,7 +15,7 @@ export type ReportTask = {
   estimated_duration: string | null;
   notes: string | null;
   week_number: number;
-  status: { value: string; label: string; color: string } | null;
+  status: { value: string; label: string; color: string | null } | null;
 };
 
 export type ReportMetrics = {
@@ -119,8 +119,8 @@ function buildPrintHTML(props: Omit<Props, "open" | "onClose">): string {
   };
 
   function badge(value: string | undefined): string {
-    const s = (value && statusColors[value]) ?? statusColors.pending;
-    const label = (value && STATUS_MAP[value]?.label) ?? "Pendiente";
+    const s = (value ? statusColors[value] : null) ?? statusColors.pending;
+    const label = (value ? STATUS_MAP[value]?.label : null) ?? "Pendiente";
     return `<span style="background:${s.bg};color:${s.color};padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">${label}</span>`;
   }
 
@@ -489,7 +489,7 @@ export function ReportPreviewDialog({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 mb-3">
+    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
       {children}
     </p>
   );

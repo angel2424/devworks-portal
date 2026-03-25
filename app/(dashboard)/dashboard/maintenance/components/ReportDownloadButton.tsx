@@ -11,7 +11,6 @@ interface Props {
   monthNumber: number;
   reportGeneratedAt: string | null;
   reportStoragePath: string | null;
-  planId: string;
   // Report content
   clientName: string;
   tasks: ReportTask[];
@@ -37,7 +36,6 @@ export function ReportDownloadButton({
   monthNumber,
   reportGeneratedAt,
   reportStoragePath,
-  planId,
   clientName,
   tasks,
   metrics,
