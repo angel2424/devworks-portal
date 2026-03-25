@@ -71,13 +71,13 @@ export function TaskFilters({ statuses, priorities }: TaskFiltersProps) {
 
   const toggleStatus = (value: string) => {
     const next = new Set(activeStatuses);
-    next.has(value) ? next.delete(value) : next.add(value);
+    if (next.has(value)) { next.delete(value); } else { next.add(value); }
     updateParam("status", next.size ? [...next].join(",") : null);
   };
 
   const togglePriority = (value: string) => {
     const next = new Set(activePriorities);
-    next.has(value) ? next.delete(value) : next.add(value);
+    if (next.has(value)) { next.delete(value); } else { next.add(value); }
     updateParam("priority", next.size ? [...next].join(",") : null);
   };
 

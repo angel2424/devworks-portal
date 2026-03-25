@@ -124,11 +124,9 @@ function DraggableCard({ task, isOverlay = false }: { task: TaskRow; isOverlay?:
 function DroppableColumn({
   status,
   tasks,
-  activeId,
 }: {
   status: StatusInfo;
   tasks: TaskRow[];
-  activeId: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
@@ -225,7 +223,6 @@ export function TaskKanbanView({ tasks, taskStatuses, onUpdateTask }: Props) {
               key={status.id}
               status={status}
               tasks={tasks.filter((t) => t.status.id === status.id)}
-              activeId={activeId}
             />
           ))}
         </div>

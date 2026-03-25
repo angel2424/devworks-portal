@@ -110,7 +110,13 @@ export default async function DashboardPage() {
   const activeProjects = activeProjectsResult.count ?? 0;
   const expiredTasks = expiredTasksResult.count ?? 0;
   const openTasks = openTasksResult.count ?? 0;
-  const todayTasks = (todayTasksResult.data ?? []) as TodayTask[];
+  const todayTasks: TodayTask[] = (todayTasksResult.data ?? []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    project: Array.isArray(t.project) ? (t.project[0] ?? null) : (t.project ?? null),
+    status: Array.isArray(t.status) ? (t.status[0] ?? null) : (t.status ?? null),
+    priority: Array.isArray(t.priority) ? (t.priority[0] ?? null) : (t.priority ?? null),
+  }));
 
   return (
     <div className="px-8 py-8 max-w-6xl mx-auto">

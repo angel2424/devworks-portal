@@ -93,7 +93,15 @@ export default async function TasksPage({
   query = query.order("due_date", { ascending: true, nullsFirst: false });
 
   const { data: tasks } = await query;
-  const typedTasks = (tasks ?? []) as TaskRow[];
+  const typedTasks: TaskRow[] = (tasks ?? []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    due_date: t.due_date,
+    project: Array.isArray(t.project) ? (t.project[0] ?? null) : (t.project ?? null),
+    status: Array.isArray(t.status) ? (t.status[0] ?? null) : (t.status ?? null),
+    priority: Array.isArray(t.priority) ? (t.priority[0] ?? null) : (t.priority ?? null),
+    assignee: Array.isArray(t.assignee) ? (t.assignee[0] ?? null) : (t.assignee ?? null),
+  }));
 
   // Group tasks by status, preserving catalog order
   const statusOrderMap = new Map(
