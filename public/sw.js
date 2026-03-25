@@ -60,6 +60,58 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// ─── Push notifications ──────────────────────────────────────────────────────
+// Only active when running as installed PWA (standalone mode)
+
+self.addEventListener("push", (event) => {
+  let payload = {
+    title: "DevWorks Studio",
+    body: "Nueva notificación",
+    url: "/dashboard",
+    icon: "/icons/192.png",
+    badge: "/icons/192.png",
+  };
+
+  if (event.data) {
+    try {
+      payload = { ...payload, ...JSON.parse(event.data.text()) };
+    } catch {
+      // Malformed payload — use defaults above
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: payload.icon,
+      badge: payload.badge,
+      data: { url: payload.url },
+      vibrate: [200, 100, 200],
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/dashboard";
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((windowClients) => {
+        // Focus an existing window if one is open for this origin
+        for (const client of windowClients) {
+          if (client.url.startsWith(self.location.origin) && "focus" in client) {
+            client.navigate(url);
+            return client.focus();
+          }
+        }
+        // Otherwise open a new window
+        return clients.openWindow(url);
+      }),
+  );
+});
+
 // --- Strategies ---
 
 async function cacheFirst(request, cacheName) {
