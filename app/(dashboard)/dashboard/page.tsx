@@ -10,14 +10,7 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty";
-
-type TodayTask = {
-  id: string;
-  title: string;
-  project: { id: string; name: string } | null;
-  status: { label: string; color: string; value: string } | null;
-  priority: { label: string; color: string; value: string } | null;
-};
+import TodaysTasks from "@/components/dashboard/TodaysTasks";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,14 +18,20 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user?.id)
+    .single();
+
+  console.log(profile)
   const firstName =
-    user?.user_metadata?.full_name?.split(" ")[0] ??
+    profile?.full_name ??
     user?.email?.split("@")[0] ??
     "equipo";
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Fetch terminal status IDs to exclude from counts
   const [{ data: doneTaskStatuses }, { data: doneProjectStatuses }] =
     await Promise.all([
       supabase
@@ -52,14 +51,11 @@ export default async function DashboardPage() {
     (s: { id: string }) => s.id
   );
 
-  // Parallel data queries
   const [
     activeProjectsResult,
     expiredTasksResult,
     openTasksResult,
-    todayTasksResult,
   ] = await Promise.all([
-    // Active projects (exclude done/cancelled)
     doneProjectIds.length
       ? supabase
           .from("projects")
@@ -67,7 +63,6 @@ export default async function DashboardPage() {
           .not("status_id", "in", `(${doneProjectIds.join(",")})`)
       : supabase.from("projects").select("*", { count: "exact", head: true }),
 
-    // Expired tasks: due_date < today, not done
     doneTaskIds.length
       ? supabase
           .from("tasks")
@@ -79,7 +74,6 @@ export default async function DashboardPage() {
           .select("*", { count: "exact", head: true })
           .lt("due_date", today),
 
-    // Open tasks assigned to the current user: not done
     doneTaskIds.length
       ? supabase
           .from("tasks")
@@ -90,38 +84,16 @@ export default async function DashboardPage() {
           .from("tasks")
           .select("*", { count: "exact", head: true })
           .eq("assigned_to", user?.id ?? ""),
-
-    // Today's tasks assigned to the current user
-    supabase
-      .from("tasks")
-      .select(
-        `
-        id, title,
-        project:projects(id, name),
-        status:catalog_status!status_id(label, color, value),
-        priority:catalog_status!priority_id(label, color, value)
-      `
-      )
-      .eq("assigned_to", user?.id ?? "")
-      .eq("due_date", today)
-      .order("order_index"),
   ]);
 
   const activeProjects = activeProjectsResult.count ?? 0;
   const expiredTasks = expiredTasksResult.count ?? 0;
   const openTasks = openTasksResult.count ?? 0;
-  const todayTasks: TodayTask[] = (todayTasksResult.data ?? []).map((t) => ({
-    id: t.id,
-    title: t.title,
-    project: Array.isArray(t.project) ? (t.project[0] ?? null) : (t.project ?? null),
-    status: Array.isArray(t.status) ? (t.status[0] ?? null) : (t.status ?? null),
-    priority: Array.isArray(t.priority) ? (t.priority[0] ?? null) : (t.priority ?? null),
-  }));
 
   return (
-    <div className="px-8 py-8 max-w-6xl mx-auto">
-      <div className="mb-10">
-        <h1 className="font-heading text-2xl text-gray-900 mb-1">
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-6xl mx-auto">
+      <div className="mb-7 md:mb-10">
+        <h1 className="font-heading text-xl md:text-2xl text-gray-900 mb-1">
           Hola, {firstName}
         </h1>
         <p className="text-sm text-gray-500">
@@ -129,7 +101,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 md:mb-8">
         <StatCard
           label="Proyectos activos"
           value={activeProjects}
@@ -151,105 +123,14 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-5 gap-6">
-        <div className="col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading text-base text-gray-900">
-              Mis Tareas de Hoy
-            </h2>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-            {todayTasks.length === 0 ? (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <svg
-                      className="w-5 h-5 text-gray-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </EmptyMedia>
-                  <EmptyTitle>Sin tareas para hoy</EmptyTitle>
-                  <EmptyDescription>
-                    No tienes tareas con vencimiento hoy.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {todayTasks.map((task) => {
-                  const dotColor =
-                    task.status?.color?.startsWith("#")
-                      ? task.status.color
-                      : "#d1d5db";
-                  const priorityBg =
-                    task.priority?.color?.startsWith("#")
-                      ? `${task.priority.color}20`
-                      : "#f3f4f6";
-                  const priorityText =
-                    task.priority?.color?.startsWith("#")
-                      ? task.priority.color
-                      : "#6b7280";
-
-                  return (
-                    <li
-                      key={task.id}
-                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: dotColor }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {task.title}
-                        </p>
-                        {task.project && (
-                          <p className="text-xs text-gray-400 truncate">
-                            {task.project.name}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {task.priority && (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full font-medium"
-                            style={{
-                              backgroundColor: priorityBg,
-                              color: priorityText,
-                            }}
-                          >
-                            {task.priority.label}
-                          </span>
-                        )}
-                        {task.status && (
-                          <span className="text-xs text-gray-400">
-                            {task.status.label}
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        <div className="col-span-2 space-y-6">
-          <div>
+      <div className="flex flex-col-reverse lg:flex-row items-start gap-5 md:gap-6">
+        <TodaysTasks userId={user?.id} />
+        <div className="flex-1 w-full space-y-6 md:space-y-8">
+          <div className="">
             <h2 className="font-heading text-base text-gray-900 mb-4">
               Acciones rápidas
             </h2>
-            <div className="space-y-2">
+            <div className="flex flex-col w-full gap-4">
               <QuickAction
                 label="Nuevo cliente"
                 description="Agregar al CRM"

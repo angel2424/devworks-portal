@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { PortalMobileNav } from "@/components/portal/MobileNav";
 
 export default async function PortalLayout({
   children,
@@ -31,15 +32,15 @@ export default async function PortalLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Top navigation */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           {/* Wordmark */}
-          <Link href="/portal" className="flex items-center gap-2">
+          <Link href="/portal" className="flex items-center gap-2 shrink-0">
             <span className="font-heading text-lg font-semibold text-gray-900 tracking-tight">
               DevWorks<span className="text-brand-500">.</span>
             </span>
           </Link>
 
-          {/* Nav links */}
+          {/* Desktop nav links */}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/portal" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
               Mi Proyecto
@@ -52,20 +53,21 @@ export default async function PortalLayout({
             </Link>
           </nav>
 
-          {/* Avatar */}
-          <div className="flex items-center gap-3">
+          {/* Avatar + mobile hamburger */}
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             <span className="text-sm text-gray-500 hidden sm:block">{displayName}</span>
-            <div className="w-8 h-8 rounded-full bg-brand-500/10 border border-brand-200 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-brand-500/10 border border-brand-200 flex items-center justify-center shrink-0">
               <span className="text-xs font-semibold text-brand-600 font-heading">
                 {initials}
               </span>
             </div>
+            <PortalMobileNav />
           </div>
         </div>
       </header>
 
       {/* Page content */}
-      <main className="max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {children}
       </main>
     </div>

@@ -93,8 +93,8 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 px-1 transition-all duration-150 relative",
-                isActive ? "text-brand-500" : "text-gray-400 active:text-gray-600"
+                "flex flex-col items-center justify-center gap-1 flex-1 min-w-0 px-1 transition-all duration-150 relative active:opacity-70",
+                isActive ? "text-brand-500" : "text-gray-400"
               )}
             >
               {isActive && (
@@ -103,7 +103,7 @@ export function MobileBottomNav() {
               {item.icon(isActive)}
               <span
                 className={cn(
-                  "text-[10px] font-medium leading-none",
+                  "text-[11px] font-medium leading-none truncate w-full text-center",
                   isActive ? "text-brand-600" : "text-gray-400"
                 )}
               >

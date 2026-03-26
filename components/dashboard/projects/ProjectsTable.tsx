@@ -125,7 +125,7 @@ export function ProjectsTable({ projects, statuses, clients }: Props) {
     <div className="space-y-6">
       {/* ── Toolbar ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="relative flex-1 min-w-48 w-full sm:max-w-xs">
+        <div className="relative flex-1 min-w-0 w-full sm:max-w-xs">
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
             fill="none"
@@ -196,53 +196,59 @@ export function ProjectsTable({ projects, statuses, clients }: Props) {
         {filtered.length} {filtered.length === 1 ? "proyecto" : "proyectos"}
       </span>
 
-      {/* ── Mobile cards ── */}
-      <div className="md:hidden space-y-3">
+      {/* ── Mobile grid ── */}
+      <div className="md:hidden">
         {filtered.length === 0 ? (
           <EmptyState hasFilters={hasFilters} />
         ) : (
-          filtered.map((project) => {
-            const isLoading = pendingId === project.id;
-            return (
-              <button
-                key={project.id}
-                onClick={() => !isPending && handleRowClick(project.id)}
-                disabled={isPending}
-                className={`w-full text-left rounded-xl border bg-white p-4 transition-all cursor-pointer active:scale-[0.99] ${
-                  isLoading
-                    ? "border-brand-200 bg-brand-50/60 opacity-75"
-                    : "border-gray-200 hover:border-brand-200 hover:bg-brand-50/30"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {project.name}
-                      </p>
-                      {isLoading && <Spinner size="xs" className="text-brand-400 shrink-0" />}
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map((project) => {
+              const isLoading = pendingId === project.id;
+              return (
+                <button
+                  key={project.id}
+                  onClick={() => !isPending && handleRowClick(project.id)}
+                  disabled={isPending}
+                  className={`w-full text-left rounded-xl border bg-white p-4 transition-all cursor-pointer active:scale-[0.98] flex flex-col ${
+                    isLoading
+                      ? "border-brand-200 bg-brand-50/60 opacity-75"
+                      : "border-gray-200 hover:border-brand-200 hover:bg-brand-50/30 active:bg-brand-50/30 active:border-brand-200"
+                  }`}
+                >
+                  {/* Icon + status row */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                      </svg>
                     </div>
-                    {project.client && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
-                        {project.client.name}
-                        {project.client.company && ` · ${project.client.company}`}
-                      </p>
-                    )}
+                    {isLoading
+                      ? <Spinner size="xs" className="text-brand-400" />
+                      : <Badge variant="outline" className={`text-[11px] font-medium px-1.5 py-0.5 leading-none ${statusBadgeClass(project.status.color)}`}>
+                          {project.status.label}
+                        </Badge>
+                    }
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs font-medium px-2 py-0.5 shrink-0 ${statusBadgeClass(project.status.color)}`}
-                  >
-                    {project.status.label}
-                  </Badge>
-                </div>
-                <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
-                  <span>Inicio: {formatDate(project.start_date)}</span>
-                  <span>Entrega: {formatDate(project.end_date)}</span>
-                </div>
-              </button>
-            );
-          })
+
+                  {/* Name + client */}
+                  <p className="text-sm font-semibold text-gray-900 truncate leading-snug">{project.name}</p>
+                  {project.client && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{project.client.name}</p>
+                  )}
+
+                  {/* Dates footer */}
+                  <div className="mt-auto pt-3 border-t border-gray-100 space-y-0.5">
+                    <p className="text-[11px] text-gray-400">
+                      <span className="text-gray-300">Inicio </span>{formatDate(project.start_date)}
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      <span className="text-gray-300">Entrega </span>{formatDate(project.end_date)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 

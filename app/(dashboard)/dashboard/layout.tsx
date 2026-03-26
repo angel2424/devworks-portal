@@ -20,14 +20,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Role check: query profiles table (authoritative source for role)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, full_name")
     .eq("id", user.id)
     .single();
-
-    console.log(profile?.role, profile)
 
   if (profile?.role !== "team") {
     redirect("/portal");

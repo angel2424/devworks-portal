@@ -19,7 +19,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -469,43 +469,60 @@ export function TaskTableView({
       {/* Mobile */}
       <div className="space-y-6 md:hidden">
         {mobileGroups.map(({ phase, phaseId, tasks: phaseTasks }) => (
-          <div key={phaseId ?? "none"} className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
+          <div key={phaseId ?? "none"}>
+            {/* Phase label */}
+            <div className="flex items-center gap-2 px-1 mb-2.5">
               <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 {phase?.name ?? "Sin fase"}
               </span>
               <span className="text-xs text-gray-400">({phaseTasks.length})</span>
             </div>
-            {phaseTasks.map((task) => (
-              <div key={task.id} className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-gray-800">{task.title}</p>
-                  <Badge variant="outline" className={`text-xs shrink-0 ${statusBadgeClass(task.status.color)}`}>
-                    {task.status.label}
-                  </Badge>
+            {/* Grid of task cards */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {phaseTasks.map((task) => (
+                <div key={task.id} className="rounded-xl border border-gray-200 bg-white p-3 flex flex-col">
+                  {/* Status + delete */}
+                  <div className="flex items-start justify-between gap-1 mb-2">
+                    <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none ${statusBadgeClass(task.status.color)}`}>
+                      {task.status.label}
+                    </Badge>
+                    <button
+                      onClick={() => onDeleteTask(task.id)}
+                      className="w-6 h-6 flex items-center justify-center rounded-md text-gray-300 active:text-red-500 active:bg-red-50 transition-colors shrink-0"
+                      aria-label="Eliminar tarea"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Title */}
+                  <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 flex-1">
+                    {task.title}
+                  </p>
+
+                  {/* Footer */}
+                  <div className="mt-auto pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1">
+                    <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none ${statusBadgeClass(task.priority.color)}`}>
+                      {task.priority.label}
+                    </Badge>
+                    {task.due_date ? (
+                      <span className={`text-[11px] font-medium shrink-0 ${isOverdue(task.due_date) ? "text-red-500" : "text-gray-400"}`}>
+                        {task.due_date.slice(5)}
+                      </span>
+                    ) : task.assigned ? (
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Avatar className="h-4 w-4 shrink-0">
+                          <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
+                            {initials(task.assigned.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-[11px] text-gray-400 truncate">{task.assigned.full_name?.split(" ")[0]}</span>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-xs ${statusBadgeClass(task.priority.color)}`}>
-                    {task.priority.label}
-                  </Badge>
-                  {task.assigned && (
-                    <div className="flex items-center gap-1">
-                      <Avatar className="h-4 w-4">
-                        <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
-                          {initials(task.assigned.full_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-gray-500">{task.assigned.full_name}</span>
-                    </div>
-                  )}
-                  {task.due_date && (
-                    <span className={`text-xs ml-auto ${isOverdue(task.due_date) ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                      {task.due_date}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
       </div>

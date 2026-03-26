@@ -13,9 +13,10 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import type { TaskRow, StatusInfo } from "./TasksViewer";
 
 type Props = {
@@ -161,6 +162,156 @@ function DroppableColumn({
   );
 }
 
+// ─── Mobile status tab selector ───────────────────────────────────────────────
+
+function MobileKanban({
+  tasks,
+  taskStatuses,
+  onUpdateTask,
+}: Props) {
+  const [activeStatusId, setActiveStatusId] = useState<string>(
+    taskStatuses[0]?.id ?? ""
+  );
+
+  useEffect(() => {
+    if (taskStatuses.length > 0 && !taskStatuses.find((s) => s.id === activeStatusId)) {
+      setActiveStatusId(taskStatuses[0].id);
+    }
+  }, [taskStatuses, activeStatusId]);
+
+  const activeStatus = taskStatuses.find((s) => s.id === activeStatusId);
+  const visibleTasks = tasks.filter((t) => t.status.id === activeStatusId);
+
+  return (
+    <div className="space-y-3">
+      {/* Status tab strip */}
+      <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {taskStatuses.map((status) => {
+          const count = tasks.filter((t) => t.status.id === status.id).length;
+          const isActive = status.id === activeStatusId;
+          return (
+            <button
+              key={status.id}
+              onClick={() => setActiveStatusId(status.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all active:scale-95",
+                isActive
+                  ? "bg-gray-900 text-white"
+                  : "bg-gray-100 text-gray-500 active:bg-gray-200"
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDotClass(status.color))} />
+              {status.label}
+              <span className={cn(
+                "text-[10px] font-semibold tabular-nums",
+                isActive ? "text-white/70" : "text-gray-400"
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Cards for selected status — tappable to change status */}
+      {visibleTasks.length === 0 ? (
+        <div className="flex items-center justify-center h-24 rounded-xl border-2 border-dashed border-gray-200">
+          <span className="text-xs text-gray-300">
+            Sin tareas en {activeStatus?.label ?? "este estado"}
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {visibleTasks.map((task) => (
+            <MobileKanbanCard
+              key={task.id}
+              task={task}
+              taskStatuses={taskStatuses}
+              onUpdateTask={onUpdateTask}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileKanbanCard({
+  task,
+  taskStatuses,
+  onUpdateTask,
+}: {
+  task: TaskRow;
+  taskStatuses: StatusInfo[];
+  onUpdateTask: Props["onUpdateTask"];
+}) {
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-2.5 active:bg-gray-50/60 transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm text-gray-800 font-medium leading-snug">{task.title}</p>
+        {/* Tap badge to change status */}
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setShowStatusPicker((v) => !v)}
+            className={cn(
+              "text-xs font-medium px-2 py-0.5 rounded-md border transition-opacity active:opacity-70",
+              statusBadgeClass(task.status.color)
+            )}
+          >
+            {task.status.label}
+          </button>
+          {showStatusPicker && (
+            <div className="absolute right-0 top-full mt-1 z-20 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden min-w-[140px]">
+              {taskStatuses.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    onUpdateTask(task.id, { status_id: s.id }, { status: s });
+                    setShowStatusPicker(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
+                >
+                  <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", statusDotClass(s.color))} />
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {task.description && (
+        <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{task.description}</p>
+      )}
+
+      <div className="flex items-center justify-between gap-2 pt-0.5 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn("text-xs", statusBadgeClass(task.priority.color))}>
+            {task.priority.label}
+          </Badge>
+          {task.assigned && (
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-4 w-4 shrink-0">
+                <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
+                  {initials(task.assigned.full_name)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-gray-500 truncate max-w-24">{task.assigned.full_name}</span>
+            </div>
+          )}
+        </div>
+        {task.due_date && (
+          <span className={cn("text-xs font-medium shrink-0", isOverdue(task.due_date) ? "text-red-500" : "text-gray-400")}>
+            {formatDateShort(task.due_date)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Kanban View ─────────────────────────────────────────────────────────
 
 export function TaskKanbanView({ tasks, taskStatuses, onUpdateTask }: Props) {
@@ -184,7 +335,6 @@ export function TaskKanbanView({ tasks, taskStatuses, onUpdateTask }: Props) {
     const taskId      = active.id as string;
     const newStatusId = over.id as string;
 
-    // `over.id` could be a column (status) ID or another card ID — we only care about columns
     const targetStatus = taskStatuses.find((s) => s.id === newStatusId);
     if (!targetStatus) return;
 
@@ -194,9 +344,7 @@ export function TaskKanbanView({ tasks, taskStatuses, onUpdateTask }: Props) {
     onUpdateTask(taskId, { status_id: newStatusId }, { status: targetStatus });
   }
 
-  // Allow dropping on a column when dragging over any card inside it
   function handleDragOver({ over }: DragOverEvent) {
-    // no-op — we use over.id from handleDragEnd
     void over;
   }
 
@@ -209,28 +357,38 @@ export function TaskKanbanView({ tasks, taskStatuses, onUpdateTask }: Props) {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveId(null)}
-    >
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max">
-          {taskStatuses.map((status) => (
-            <DroppableColumn
-              key={status.id}
-              status={status}
-              tasks={tasks.filter((t) => t.status.id === status.id)}
-            />
-          ))}
-        </div>
+    <>
+      {/* Mobile: status tabs + single-column cards */}
+      <div className="md:hidden">
+        <MobileKanban tasks={tasks} taskStatuses={taskStatuses} onUpdateTask={onUpdateTask} />
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 150, easing: "ease-out" }}>
-        {activeTask && <DraggableCard task={activeTask} isOverlay />}
-      </DragOverlay>
-    </DndContext>
+      {/* Desktop: horizontal scrollable multi-column drag-and-drop */}
+      <div className="hidden md:block">
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
+        >
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4 min-w-max">
+              {taskStatuses.map((status) => (
+                <DroppableColumn
+                  key={status.id}
+                  status={status}
+                  tasks={tasks.filter((t) => t.status.id === status.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <DragOverlay dropAnimation={{ duration: 150, easing: "ease-out" }}>
+            {activeTask && <DraggableCard task={activeTask} isOverlay />}
+          </DragOverlay>
+        </DndContext>
+      </div>
+    </>
   );
 }

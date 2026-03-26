@@ -50,9 +50,9 @@ export default async function ProjectsPage() {
   const clients: ClientOption[]  = (rawClients ?? []) as ClientOption[];
 
   return (
-    <div className="px-8 py-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl text-gray-900">Proyectos</h1>
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-7xl">
+      <div className="mb-6 md:mb-8">
+        <h1 className="font-heading text-xl md:text-2xl text-gray-900">Proyectos</h1>
         <p className="text-sm text-gray-500">
           Gestión de proyectos activos y en pipeline.
         </p>

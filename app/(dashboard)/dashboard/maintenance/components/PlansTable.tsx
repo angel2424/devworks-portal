@@ -121,7 +121,7 @@ export function PlansTable({ plans, statuses }: Props) {
     <div className="space-y-5">
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 min-w-48 w-full sm:max-w-xs">
+        <div className="relative flex-1 min-w-0 w-full sm:max-w-xs">
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
@@ -173,61 +173,66 @@ export function PlansTable({ plans, statuses }: Props) {
         {filtered.length} {filtered.length === 1 ? "plan" : "planes"}
       </span>
 
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
+      {/* Mobile grid */}
+      <div className="md:hidden">
         {filtered.length === 0 ? (
           <EmptyState hasFilters={hasFilters} />
         ) : (
-          filtered.map((plan) => {
-            const current = getCurrentMonth(plan.months);
-            const isLoading = pendingId === plan.id;
-            return (
-              <button
-                key={plan.id}
-                onClick={() => !isPending && handleRowClick(plan.id)}
-                disabled={isPending}
-                className={cn(
-                  "w-full text-left rounded-xl border bg-white p-4 transition-all active:scale-[0.99]",
-                  isLoading
-                    ? "border-brand-200 bg-brand-50/60 opacity-75"
-                    : "border-gray-200 hover:border-brand-200 hover:bg-brand-50/30"
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {plan.client?.name ?? "—"}
-                      </p>
-                      {isLoading && <Spinner size="xs" className="text-brand-400 shrink-0" />}
-                    </div>
-                    {plan.client?.company && (
-                      <p className="text-xs text-gray-400 mt-0.5">{plan.client.company}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <TypeBadge type={plan.type} />
-                    {plan.status && (
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs px-2 py-0.5", statusBadgeClass(plan.status.color))}
-                      >
-                        {plan.status.label}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
-                  {current && (
-                    <span>
-                      Mes {current.month_number} · {monthName(current.month)} {current.year}
-                    </span>
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map((plan) => {
+              const current = getCurrentMonth(plan.months);
+              const isLoading = pendingId === plan.id;
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => !isPending && handleRowClick(plan.id)}
+                  disabled={isPending}
+                  className={cn(
+                    "w-full text-left rounded-xl border bg-white p-4 transition-all active:scale-[0.98] flex flex-col",
+                    isLoading
+                      ? "border-brand-200 bg-brand-50/60 opacity-75"
+                      : "border-gray-200 hover:border-brand-200 hover:bg-brand-50/30 active:bg-brand-50/30 active:border-brand-200"
                   )}
-                  <span>Inicio: {formatDate(plan.start_date)}</span>
-                </div>
-              </button>
-            );
-          })
+                >
+                  {/* Badges row */}
+                  <div className="flex items-start justify-between gap-1.5 mb-3">
+                    <TypeBadge type={plan.type} />
+                    {isLoading
+                      ? <Spinner size="xs" className="text-brand-400 shrink-0" />
+                      : plan.status && (
+                          <Badge
+                            variant="outline"
+                            className={cn("text-[11px] px-1.5 py-0.5 leading-none shrink-0", statusBadgeClass(plan.status.color))}
+                          >
+                            {plan.status.label}
+                          </Badge>
+                        )
+                    }
+                  </div>
+
+                  {/* Client */}
+                  <p className="text-sm font-semibold text-gray-900 truncate leading-snug">
+                    {plan.client?.name ?? "—"}
+                  </p>
+                  {plan.client?.company && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{plan.client.company}</p>
+                  )}
+
+                  {/* Month + date footer */}
+                  <div className="mt-auto pt-3 border-t border-gray-100 space-y-0.5">
+                    {current && (
+                      <p className="text-[11px] text-gray-500 font-medium">
+                        Mes {current.month_number} · {monthName(current.month)} {current.year}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-gray-400">
+                      <span className="text-gray-300">Inicio </span>{formatDate(plan.start_date)}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 

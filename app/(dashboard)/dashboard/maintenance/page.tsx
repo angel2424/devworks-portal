@@ -42,24 +42,25 @@ export default async function MaintenancePage() {
   }));
 
   return (
-    <div className="px-8 py-8 max-w-6xl mx-auto">
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl text-gray-900">Mantenimiento</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="font-heading text-xl md:text-2xl text-gray-900">Mantenimiento</h1>
           {plans.length > 0 && (
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
               {plans.length}
             </span>
           )}
         </div>
         <Link
           href="/dashboard/maintenance/new"
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-brand-500 active:bg-brand-600 hover:bg-brand-600 text-white rounded-lg transition-colors shrink-0"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Nuevo plan
+          <span className="hidden sm:inline">Nuevo plan</span>
+          <span className="sm:hidden">Nuevo</span>
         </Link>
       </div>
 

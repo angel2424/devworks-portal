@@ -12,7 +12,7 @@ export default function QuickAction({
   return (
     <a
       href={href}
-      className="flex items-center gap-4 p-4 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all group"
+      className="flex flex-1 items-center gap-4 p-4 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all group"
     >
       <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-brand-500 group-hover:bg-brand-50 transition-colors shrink-0">
         {icon}

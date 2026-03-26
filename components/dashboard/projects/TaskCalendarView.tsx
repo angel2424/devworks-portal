@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import type { TaskRow } from "./TasksViewer";
 
-const WEEKDAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const WEEKDAYS_FULL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const WEEKDAYS_SHORT = ["D", "L", "M", "M", "J", "V", "S"];
 
 function statusCalendarClass(color: string | null) {
   switch (color) {
@@ -58,10 +59,11 @@ export function TaskCalendarView({ tasks }: { tasks: TaskRow[] }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
         <button
           onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-9 h-9 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-100 active:text-gray-700 transition-colors"
+          aria-label="Mes anterior"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -70,7 +72,8 @@ export function TaskCalendarView({ tasks }: { tasks: TaskRow[] }) {
         <span className="text-sm font-semibold text-gray-700 capitalize">{monthLabel}</span>
         <button
           onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-9 h-9 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-100 active:text-gray-700 transition-colors"
+          aria-label="Mes siguiente"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -80,9 +83,10 @@ export function TaskCalendarView({ tasks }: { tasks: TaskRow[] }) {
 
       {/* Day labels */}
       <div className="grid grid-cols-7 border-b border-gray-100">
-        {WEEKDAYS.map((d) => (
-          <div key={d} className="py-2.5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            {d}
+        {WEEKDAYS_FULL.map((d, i) => (
+          <div key={d} className="py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <span className="hidden sm:inline">{d}</span>
+            <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span>
           </div>
         ))}
       </div>
@@ -91,26 +95,26 @@ export function TaskCalendarView({ tasks }: { tasks: TaskRow[] }) {
       <div className="grid grid-cols-7 divide-x divide-y divide-gray-100">
         {cells.map((day, i) => {
           const dayTasks   = day ? (tasksByDay[day] ?? []) : [];
-          const maxVisible = 3;
+          const maxVisible = 2;
           const extraCount = dayTasks.length - maxVisible;
 
           return (
-            <div key={i} className={`min-h-[96px] p-1.5 ${!day ? "bg-gray-50/40" : isToday(day) ? "bg-brand-50/30" : "bg-white"}`}>
+            <div key={i} className={`min-h-[60px] sm:min-h-[96px] p-1 sm:p-1.5 ${!day ? "bg-gray-50/40" : isToday(day) ? "bg-brand-50/30" : "bg-white"}`}>
               {day && (
                 <>
-                  <div className="mb-1.5 flex justify-end">
-                    <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday(day) ? "bg-brand-500 text-white font-semibold" : "text-gray-500"}`}>
+                  <div className="mb-1 sm:mb-1.5 flex justify-end">
+                    <span className={`text-[10px] sm:text-xs font-medium w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${isToday(day) ? "bg-brand-500 text-white font-semibold" : "text-gray-500"}`}>
                       {day}
                     </span>
                   </div>
                   <div className="space-y-0.5">
                     {dayTasks.slice(0, maxVisible).map((task) => (
-                      <div key={task.id} className={`text-[11px] truncate rounded px-1.5 py-0.5 leading-tight ${statusCalendarClass(task.status.color)}`} title={task.title}>
+                      <div key={task.id} className={`text-[10px] sm:text-[11px] truncate rounded px-1 sm:px-1.5 py-0.5 leading-tight ${statusCalendarClass(task.status.color)}`} title={task.title}>
                         {task.title}
                       </div>
                     ))}
                     {extraCount > 0 && (
-                      <div className="text-[11px] text-gray-400 px-1.5">+{extraCount} más</div>
+                      <div className="text-[10px] sm:text-[11px] text-gray-400 px-1 sm:px-1.5">+{extraCount}</div>
                     )}
                   </div>
                 </>

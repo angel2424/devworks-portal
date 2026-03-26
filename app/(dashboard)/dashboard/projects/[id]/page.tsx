@@ -144,25 +144,25 @@ export default async function ProjectDetailPage({
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   return (
-    <div className="px-8 py-8 max-w-7xl">
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-7xl">
       {/* ── Breadcrumb ── */}
-      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-7">
-        <Link href="/dashboard/projects" className="hover:text-gray-600 transition-colors">
+      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-5 md:mb-7">
+        <Link href="/dashboard/projects" className="hover:text-gray-600 active:text-gray-600 transition-colors shrink-0">
           Proyectos
         </Link>
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
         <span className="text-gray-600 font-medium truncate">{project.name}</span>
       </nav>
 
       {/* ── Project header ── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 mb-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 mb-5 md:mb-6">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
               <svg
-                className="w-6 h-6 text-brand-500"
+                className="w-5 h-5 sm:w-6 sm:h-6 text-brand-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -175,12 +175,12 @@ export default async function ProjectDetailPage({
                 />
               </svg>
             </div>
-            <div>
-              <h1 className="font-heading text-2xl text-gray-900">{project.name}</h1>
+            <div className="min-w-0">
+              <h1 className="font-heading text-xl sm:text-2xl text-gray-900 truncate">{project.name}</h1>
               {project.client && (
                 <Link
                   href={`/dashboard/clients/${project.client.id}`}
-                  className="text-sm text-gray-500 hover:text-brand-600 transition-colors"
+                  className="text-sm text-gray-500 hover:text-brand-600 active:text-brand-600 transition-colors truncate block"
                 >
                   {project.client.name}
                   {project.client.company && ` · ${project.client.company}`}
@@ -206,10 +206,10 @@ export default async function ProjectDetailPage({
           </>
         )}
 
-        <Separator className="my-5" />
+        <Separator className="my-4 sm:my-5" />
 
         {/* Info grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 sm:gap-x-8 gap-y-4">
           <InfoField label="Fecha de inicio" value={formatDate(project.start_date)} />
           <InfoField label="Fecha de entrega" value={formatDate(project.end_date)} />
           <InfoField label="Creado por" value={project.created_by_profile?.full_name ?? "—"} />
@@ -219,14 +219,14 @@ export default async function ProjectDetailPage({
         {/* Progress bar */}
         {totalTasks > 0 && (
           <>
-            <Separator className="my-5" />
+            <Separator className="my-4 sm:my-5" />
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Progreso general
+                  Progreso
                 </span>
                 <span className="text-xs font-semibold text-gray-600">
-                  {doneTasks}/{totalTasks} tareas · {progress}%
+                  {doneTasks}/{totalTasks} · {progress}%
                   {overdueTasks > 0 && (
                     <span className="ml-2 text-red-500">· {overdueTasks} vencida{overdueTasks > 1 ? "s" : ""}</span>
                   )}
@@ -246,7 +246,7 @@ export default async function ProjectDetailPage({
       {/* ── Tasks section ── */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading text-lg text-gray-900">Tareas</h2>
+          <h2 className="font-heading text-base sm:text-lg text-gray-900">Tareas</h2>
           <span className="text-xs text-gray-400">{totalTasks} {totalTasks === 1 ? "tarea" : "tareas"}</span>
         </div>
         <TasksViewer
