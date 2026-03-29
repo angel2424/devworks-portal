@@ -77,6 +77,28 @@ export async function cycleTaskStatus(
   revalidatePath(`/dashboard/maintenance/${planId}`);
 }
 
+export async function setTaskStatus(
+  taskId: string,
+  statusId: string,
+  statusValue: string,
+  planId: string
+) {
+  const supabase = await createClient();
+
+  const isDone = statusValue === "done";
+
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .update({
+      status_id: statusId,
+      completed_at: isDone ? new Date().toISOString() : null,
+    })
+    .eq("id", taskId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
 export async function setTaskSkipped(
   taskId: string,
   statuses: { id: string; value: string }[],
@@ -101,6 +123,20 @@ export async function saveTaskNotes(taskId: string, notes: string, planId: strin
   const { error } = await supabase
     .from("maintenance_tasks")
     .update({ notes: notes.trim() || null })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
+export async function toggleTaskInternalOnly(
+  taskId: string,
+  currentValue: boolean,
+  planId: string
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .update({ internal_only: !currentValue })
     .eq("id", taskId);
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/maintenance/${planId}`);

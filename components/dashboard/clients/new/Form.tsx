@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { formatMexPhone } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -167,8 +168,9 @@ export function NewClientForm({ statuses, teamMembers, defaultStatusId }: Props)
               <Input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+52 123 456 7890"
+                onChange={(e) => setPhone(formatMexPhone(e.target.value))}
+                placeholder="(123) 456-7890"
+                inputMode="numeric"
                 className={inputClass}
                 disabled={isPending}
               />

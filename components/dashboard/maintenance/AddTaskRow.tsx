@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import { addTask } from "../[planId]/actions";
+import { addTask } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 
 interface Props {
   monthId: string;

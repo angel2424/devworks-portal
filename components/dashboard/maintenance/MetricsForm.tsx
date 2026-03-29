@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { saveMetrics } from "../[planId]/actions";
+import { saveMetrics } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 
 type MetricsData = {
   total_clicks: number | null;

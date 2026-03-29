@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { PlansTable, type PlanRow, type PlanMonth } from "./components/PlansTable";
+import { PlansTable, type PlanRow, type PlanMonth } from "@/components/dashboard/maintenance/Table";
+import { Plus, PlusCircle } from "lucide-react";
 
 export default async function MaintenancePage() {
   const supabase = await createClient();
@@ -56,9 +57,7 @@ export default async function MaintenancePage() {
           href="/dashboard/maintenance/new"
           className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-brand-500 active:bg-brand-600 hover:bg-brand-600 text-white rounded-lg transition-colors shrink-0"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus size={'1rem'} />
           <span className="hidden sm:inline">Nuevo plan</span>
           <span className="sm:hidden">Nuevo</span>
         </Link>

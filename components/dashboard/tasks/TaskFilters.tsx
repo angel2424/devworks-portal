@@ -3,6 +3,12 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
 type FilterOption = {
   id: string;
@@ -172,58 +178,85 @@ export function TaskFilters({ statuses, priorities }: TaskFiltersProps) {
         Vencidas
       </button>
 
-      {statuses.length > 0 && <div className="h-5 w-px bg-gray-200" />}
+      {statuses.length > 0 && (
+        <>
+          <div className="h-5 w-px bg-gray-200" />
 
-      {/* Status pills */}
-      {statuses.map((s) => {
-        const isActive = activeStatuses.has(s.value);
-        const dotColor = s.color?.startsWith("#") ? s.color : "#9ca3af";
-        return (
-          <button
-            key={s.id}
-            onClick={() => toggleStatus(s.value)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
-              isActive
-                ? "bg-gray-900 border-gray-900 text-white shadow-sm"
-                : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            )}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: dotColor }}
-            />
-            {s.label}
-          </button>
-        );
-      })}
+          {/* Status dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                  activeStatuses.size > 0
+                    ? "bg-gray-900 border-gray-900 text-white shadow-sm"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                )}
+              >
+                Estado
+                {activeStatuses.size > 0 && (
+                  <span className="ml-0.5 text-xs opacity-75">({activeStatuses.size})</span>
+                )}
+                <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px] bg-white">
+              {statuses.map((s) => (
+                <DropdownMenuCheckboxItem
+                  key={s.id}
+                  checked={activeStatuses.has(s.value)}
+                  onCheckedChange={() => toggleStatus(s.value)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {s.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
 
-      {priorities.length > 0 && <div className="h-5 w-px bg-gray-200" />}
+      {priorities.length > 0 && (
+        <>
+          <div className="h-5 w-px bg-gray-200" />
 
-      {/* Priority pills */}
-      {priorities.map((p) => {
-        const isActive = activePriorities.has(p.value);
-        const pillColor = p.color?.startsWith("#") ? p.color : "#6b7280";
-        return (
-          <button
-            key={p.id}
-            onClick={() => togglePriority(p.value)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
-              isActive
-                ? "border-transparent text-white shadow-sm"
-                : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            )}
-            style={
-              isActive
-                ? { backgroundColor: pillColor, borderColor: pillColor }
-                : undefined
-            }
-          >
-            {p.label}
-          </button>
-        );
-      })}
+          {/* Priority dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                  activePriorities.size > 0
+                    ? "bg-gray-900 border-gray-900 text-white shadow-sm"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                )}
+              >
+                Prioridad
+                {activePriorities.size > 0 && (
+                  <span className="ml-0.5 text-xs opacity-75">({activePriorities.size})</span>
+                )}
+                <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px] bg-white">
+              {priorities.map((p) => (
+                <DropdownMenuCheckboxItem
+                  key={p.id}
+                  checked={activePriorities.has(p.value)}
+                  onCheckedChange={() => togglePriority(p.value)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {p.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
 
       {hasActiveFilters && (
         <>

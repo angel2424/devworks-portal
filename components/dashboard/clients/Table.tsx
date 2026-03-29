@@ -142,9 +142,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* ── Toolbar ── */}
       <div className="flex flex-col gap-3">
-        {/* Row 1: search + new button */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1 min-w-0">
             <svg
@@ -248,7 +246,7 @@ export function ClientsTable({ clients, statuses, teamMembers }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {filtered.map((client) => {
               const isLoading = pendingId === client.id;
               return (

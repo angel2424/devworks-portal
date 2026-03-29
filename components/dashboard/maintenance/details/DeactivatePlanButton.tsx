@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deactivatePlan } from "./actions";
+import { deactivatePlan } from "../../../../app/(dashboard)/dashboard/maintenance/[planId]/actions";
 
 export function DeactivatePlanButton({ planId }: { planId: string }) {
   const [isPending, startTransition] = useTransition();

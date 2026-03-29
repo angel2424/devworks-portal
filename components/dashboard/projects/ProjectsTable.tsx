@@ -201,7 +201,7 @@ export function ProjectsTable({ projects, statuses, clients }: Props) {
         {filtered.length === 0 ? (
           <EmptyState hasFilters={hasFilters} />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {filtered.map((project) => {
               const isLoading = pendingId === project.id;
               return (

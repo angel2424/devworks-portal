@@ -152,8 +152,7 @@ export default async function ClientDetailPage({
 
   return (
     <div className="px-8 py-8 max-w-6xl mx-auto">
-      {/* ── Breadcrumb ── */}
-      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-7">
+      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-7 px-2">
         <Link
           href="/dashboard/clients"
           className="hover:text-gray-600 transition-colors"
@@ -172,13 +171,11 @@ export default async function ClientDetailPage({
         <span className="text-gray-600 font-medium">{client.name}</span>
       </nav>
 
-      {/* ── Header card ── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 mb-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-8 mb-6">
         <div className="flex items-start justify-between gap-4">
-          {/* Avatar + name */}
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14 rounded-xl shrink-0">
-              <AvatarFallback className="rounded-xl text-lg bg-brand-50 text-brand-600">
+              <AvatarFallback className="rounded-xl text-xl bg-brand-50 font-bold text-brand-600">
                 {initials(client.name)}
               </AvatarFallback>
             </Avatar>
@@ -192,8 +189,6 @@ export default async function ClientDetailPage({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
             <Badge
               variant="outline"
               className={`text-xs font-medium px-2.5 py-1 ${statusBadgeClass(
@@ -202,13 +197,6 @@ export default async function ClientDetailPage({
             >
               {client.status?.label ?? "Sin estado"}
             </Badge>
-            <Button variant="outline" size="sm" className="text-sm border-gray-200" asChild>
-              <Link href={`/dashboard/clients/${id}/edit`} className="text-xs">
-                <Pencil />
-                Editar
-            </Link>
-            </Button>
-          </div>
         </div>
 
         <Separator className="my-5" />
@@ -219,7 +207,7 @@ export default async function ClientDetailPage({
             label="Email"
             value={
               client.email ? (
-                <Button variant="link" asChild className="px-0 h-auto text-sm">
+                <Button variant="link" asChild className="p-0 py-0 h-auto text-sm">
                   <a href={`mailto:${client.email}`}>{client.email}</a>
                 </Button>
               ) : (
@@ -231,7 +219,7 @@ export default async function ClientDetailPage({
             label="Teléfono"
             value={
               client.phone ? (
-                <Button variant="link" asChild className="px-0 h-auto text-sm">
+                <Button variant="link" asChild className="p-0 h-auto text-sm">
                   <a href={`tel:${client.phone}`}>{client.phone}</a>
                 </Button>
               ) : (
@@ -259,11 +247,10 @@ export default async function ClientDetailPage({
           <InfoField label="Registrado" value={formatDate(client.created_at)} />
         </div>
 
-        {/* Notes */}
+
+        <div className="flex flex-col lg:flex-row justify-between lg:items-end w-full mt-12 gap-8">
         {client.notes && (
-          <>
-            <Separator className="my-5" />
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                 Notas
               </p>
@@ -271,8 +258,14 @@ export default async function ClientDetailPage({
                 {client.notes}
               </p>
             </div>
-          </>
         )}
+            <Button variant="outline" size="sm" className="text-sm border-gray-200" asChild>
+              <Link href={`/dashboard/clients/${id}/edit`} className="text-xs">
+                <Pencil />
+                Editar
+                </Link>
+            </Button>
+        </div>
       </div>
 
       {/* ── Tabs section ── */}
@@ -292,7 +285,7 @@ function InfoField({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+      <p className="text-xs font-semibold text-gray-400 uppercase mb-1">
         {label}
       </p>
       <p className="text-sm text-gray-700">{value}</p>

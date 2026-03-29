@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { cycleTaskStatus, setTaskSkipped, saveTaskNotes } from "../[planId]/actions";
+import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
+import { Eye, EyeOff, Notebook, NotebookPen, User, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type TaskStatus = {
   id: string;
@@ -19,6 +26,7 @@ export type Task = {
   notes: string | null;
   completed_at: string | null;
   week_number: number;
+  internal_only: boolean;
   status: TaskStatus | null;
 };
 
@@ -42,10 +50,22 @@ export function TaskRow({ task, statuses, planId }: Props) {
   const [isPendingCycle, startCycle] = useTransition();
   const [isPendingSkip, startSkip] = useTransition();
   const [isPendingNotes, startNotes] = useTransition();
+  const [isPendingInternal, startInternal] = useTransition();
+  const [isPendingStatus, startStatus] = useTransition();
   const [notesOpen, setNotesOpen] = useState(!!task.notes);
   const [notesValue, setNotesValue] = useState(task.notes ?? "");
 
-  const isPending = isPendingCycle || isPendingSkip || isPendingNotes;
+  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus;
+
+  function handleSetStatus(statusId: string, statusValue: string) {
+    if (isPending) return;
+    startStatus(() => setTaskStatus(task.id, statusId, statusValue, planId));
+  }
+
+  function handleToggleInternal() {
+    if (isPending) return;
+    startInternal(() => toggleTaskInternalOnly(task.id, task.internal_only, planId));
+  }
 
   function handleCycle() {
     if (isPending) return;
@@ -80,7 +100,8 @@ export function TaskRow({ task, statuses, planId }: Props) {
         "group rounded-lg border transition-all",
         isDone && "border-green-200 bg-green-50/40",
         isSkipped && "border-gray-200 bg-gray-50/60 opacity-60",
-        !isDone && !isSkipped && "border-gray-200 bg-white hover:border-gray-300"
+        !isDone && !isSkipped && task.internal_only && "border-violet-100 bg-violet-50/30",
+        !isDone && !isSkipped && !task.internal_only && "border-gray-200 bg-white hover:border-gray-300"
       )}
     >
       <div className="flex items-start gap-3 px-4 py-3">
@@ -91,30 +112,29 @@ export function TaskRow({ task, statuses, planId }: Props) {
           title="Cambiar estado (click para avanzar)"
           className={cn(
             "mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
-            isPendingCycle && "opacity-50 cursor-wait",
-            isDone
-              ? "border-green-500 bg-green-500 text-white"
-              : isSkipped
-              ? "border-gray-300 bg-gray-100"
-              : "border-gray-300 hover:border-brand-400 hover:bg-brand-50"
+            isPendingCycle && "cursor-wait",
+            isDone    && "border-green-500 bg-green-500 text-white hover:bg-green-600 hover:border-green-600",
+            isSkipped && "border-red-400 bg-red-50 hover:bg-red-100",
+            !isDone && !isSkipped && task.status?.value === "in_progress" && "border-amber-400 bg-amber-50 hover:bg-amber-100",
+            !isDone && !isSkipped && task.status?.value === "pending"     && "border-gray-300 bg-white hover:border-brand-400 hover:bg-brand-50"
           )}
         >
-          {isDone && (
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-          {isSkipped && (
-            <svg className="w-2.5 h-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          )}
-          {!isDone && !isSkipped && isPendingCycle && (
-            <svg className="w-3 h-3 text-brand-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          {isPendingCycle ? (
+            <svg className="w-2.5 h-2.5 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-          )}
+          ) : isDone ? (
+            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          ) : isSkipped ? (
+            <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h12" />
+            </svg>
+          ) : task.status?.value === "in_progress" ? (
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+          ) : null}
         </button>
 
         {/* Content */}
@@ -129,25 +149,50 @@ export function TaskRow({ task, statuses, planId }: Props) {
               {task.title}
             </span>
 
-            {/* Status badge */}
+            {/* Status badge dropdown */}
             {task.status && (
-              <span
-                className={cn(
-                  "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
-                  statusBadgeClass(statusColor)
-                )}
-              >
-                {task.status.label}
-              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={isPendingStatus}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-opacity hover:opacity-80 disabled:cursor-wait",
+                      statusBadgeClass(statusColor)
+                    )}
+                  >
+                    {task.status.label}
+                    <ChevronDown size={10} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[140px] bg-white">
+                  {statuses.map((s) => (
+                    <DropdownMenuItem
+                      key={s.id}
+                      onSelect={() => handleSetStatus(s.id, s.value)}
+                      className={cn(
+                        "text-xs cursor-pointer",
+                        task.status?.id === s.id && "font-semibold"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border mr-2",
+                          statusBadgeClass(s.color)
+                        )}
+                      >
+                        {s.label}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
           {/* Meta row */}
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <span className="flex items-center gap-1 text-xs text-gray-400">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
+              <User size={'.8rem'} />
               {task.responsible}
             </span>
             {task.estimated_duration && (
@@ -168,7 +213,6 @@ export function TaskRow({ task, statuses, planId }: Props) {
             )}
           </div>
 
-          {/* Notes */}
           {notesOpen && (
             <div className="mt-2 space-y-1.5">
               <textarea
@@ -197,8 +241,25 @@ export function TaskRow({ task, statuses, planId }: Props) {
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 transition-opacity">
+          <button
+            onClick={handleToggleInternal}
+            disabled={isPendingInternal}
+            title={task.internal_only ? "Marcar como visible para cliente" : "Ocultar del reporte (solo equipo)"}
+            className={cn(
+              "p-1.5 rounded-md transition-colors disabled:opacity-50",
+              task.internal_only
+                ? "text-brand-600 bg-brand-50"
+                : "text-gray-400 hover:text-violet-600 hover:bg-violet-50"
+            )}
+          >
+            {task.internal_only ? (
+              <EyeOff size={'.8rem'} />
+            ) : (
+              <Eye size={'.8rem'} />
+            )}
+          </button>
+
           {/* Notes toggle */}
           <button
             onClick={() => setNotesOpen(!notesOpen)}
@@ -210,9 +271,7 @@ export function TaskRow({ task, statuses, planId }: Props) {
                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             )}
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-            </svg>
+            <NotebookPen size={'.8rem'} />
           </button>
 
           {/* Skip */}

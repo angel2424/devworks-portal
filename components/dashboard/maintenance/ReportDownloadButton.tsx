@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { getReportSignedUrl } from "../[planId]/actions";
+import { getReportSignedUrl } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 import { ReportPreviewDialog, type ReportTask, type ReportMetrics } from "./ReportPreviewDialog";
 
 interface Props {

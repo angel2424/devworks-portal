@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { NewPlanForm } from "../components/NewPlanForm";
+import { NewPlanForm } from "@/components/dashboard/maintenance/NewPlanForm";
 
 export default async function NewMaintenancePlanPage() {
   const supabase = await createClient();

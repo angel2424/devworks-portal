@@ -4,9 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { MonthTimeline } from "../components/MonthTimeline";
-import { MonthView } from "../components/MonthView";
-import { DeactivatePlanButton } from "./DeactivatePlanButton";
+import { MonthTimeline } from "@/components/dashboard/maintenance/MonthTimeline";
+import { MonthView } from "@/components/dashboard/maintenance/MonthView";
+import { DeactivatePlanButton } from "@/components/dashboard/maintenance/details/DeactivatePlanButton";
+import { ChevronLeft } from "lucide-react";
 
 type Props = {
   params: Promise<{ planId: string }>;
@@ -50,7 +51,7 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
       months:maintenance_months(
         id, month_number, year, month, status, report_generated_at, report_storage_path,
         tasks:maintenance_tasks(
-          id, week_number, title, responsible, estimated_duration, order_index, notes, completed_at,
+          id, week_number, title, responsible, estimated_duration, order_index, notes, completed_at, internal_only,
           status:catalog_status!status_id(id, label, color, value)
         ),
         metrics:maintenance_metrics(
@@ -101,6 +102,7 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
               notes: t.notes as string | null,
               completed_at: t.completed_at as string | null,
               week_number: t.week_number as number,
+              internal_only: (t.internal_only as boolean) ?? false,
               status: tStatus as { id: string; label: string; color: string; value: string } | null,
             };
           })
@@ -139,43 +141,28 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
     status?.value === "active" && raw.type === "recurring";
 
   return (
-    <div className="px-8 py-8 max-w-4xl mx-auto">
-      {/* Breadcrumb */}
+    <div className="px-8 py-8 max-w-5xl mx-auto">
       <Link
         href="/dashboard/maintenance"
         className="text-xs text-gray-400 hover:text-gray-600 transition-colors mb-4 inline-flex items-center gap-1"
       >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <ChevronLeft size={'.8rem'}/>
         Mantenimiento
       </Link>
 
-      {/* Header card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 mb-8">
-        <div className="flex items-start justify-between gap-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-8 mb-8">
+        <div className="flex items-start justify-between gap-8">
           <div className="min-w-0">
             <h1 className="font-heading text-xl text-gray-900 truncate">
-              {client?.name ?? "Sin cliente"}
+              {client?.company ?? "Sin Empresa"}
             </h1>
-            {client?.company && (
-              <p className="text-xs text-gray-400 mt-0.5">{client.company}</p>
+            {client?.name && (
+              <p className="text-xs text-gray-400 mt-0.5">{client.name}</p>
             )}
 
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
-              {/* Type badge */}
-              {raw.type === "spt" ? (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                  Sistema Presencia Total™
-                </span>
-              ) : (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
-                  Recurrente
-                </span>
-              )}
 
-              {/* Status */}
-              {status && (
+            <div className="flex items-center gap-3 mt-8 flex-wrap">
+                              {status && (
                 <Badge
                   variant="outline"
                   className={`text-xs px-2.5 py-1 ${statusBadgeClass(status.color)}`}
@@ -183,42 +170,34 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
                   {status.label}
                 </Badge>
               )}
-
-              {/* Project link */}
-              {project && (
-                <Link
-                  href={`/dashboard/projects/${project.id}`}
-                  className="text-xs text-brand-600 hover:text-brand-700 hover:underline underline-offset-2 flex items-center gap-1"
-                >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                  </svg>
-                  {project.name}
-                </Link>
+              {raw.type === "spt" ? (
+                <span className="text-xs font-semibold text-brand-700">
+                  Sistema Presencia Total™
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-gray-600">
+                  Recurrente
+                </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
-            {/* Date range */}
-            <div className="hidden sm:block text-right">
+          <div className="hidden sm:flex items-end mt-auto gap-6">
+            <div>
               <p className="text-xs text-gray-400">Inicio</p>
-              <p className="text-sm font-medium text-gray-700">{formatDate(raw.start_date)}</p>
-              {raw.end_date && (
-                <>
-                  <p className="text-xs text-gray-400 mt-1">Fin</p>
-                  <p className="text-sm font-medium text-gray-700">{formatDate(raw.end_date)}</p>
-                </>
-              )}
+              <p className="text-xs font-medium text-gray-700">{formatDate(raw.start_date)}</p>
             </div>
-
-            {/* Deactivate button (recurring only) */}
+              {raw.end_date && (
+                <div>
+                  <p className="text-xs text-gray-400">Fin</p>
+                  <p className="text-xs font-medium text-gray-700">{formatDate(raw.end_date)}</p>
+                </div>
+              )}
             {canDeactivate && <DeactivatePlanButton planId={planId} />}
           </div>
         </div>
       </div>
 
-      {/* Month timeline */}
       <div className="mb-8">
         <MonthTimeline
           months={months}
@@ -227,7 +206,6 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
         />
       </div>
 
-      {/* Month view */}
       {selectedMonth ? (
         <MonthView
           month={selectedMonth}

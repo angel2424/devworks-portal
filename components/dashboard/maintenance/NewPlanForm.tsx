@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createPlan } from "../actions";
+import { createPlan } from "@/app/(dashboard)/dashboard/maintenance/actions";
 
 type ClientOption = { id: string; name: string; company: string | null };
 type ProjectOption = { id: string; name: string; client_id: string | null };

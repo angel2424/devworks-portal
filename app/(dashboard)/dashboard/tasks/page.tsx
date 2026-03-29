@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import { TaskFilters } from "@/components/dashboard/tasks/TaskFilters";
-import { TaskGroups, type StatusGroup, type TaskRow } from "@/components/dashboard/tasks/TaskGroups";
+import { TaskGroups, type TaskRow } from "@/components/dashboard/tasks/TaskGroups";
 import {
   Empty,
   EmptyHeader,
@@ -103,26 +103,6 @@ export default async function TasksPage({
     assignee: Array.isArray(t.assignee) ? (t.assignee[0] ?? null) : (t.assignee ?? null),
   }));
 
-  // Group tasks by status, preserving catalog order
-  const statusOrderMap = new Map(
-    (taskStatuses ?? []).map((s, i) => [s.id, i])
-  );
-
-  const groupMap = new Map<string, StatusGroup>();
-  for (const task of typedTasks) {
-    const key = task.status?.id ?? "__none__";
-    if (!groupMap.has(key)) {
-      groupMap.set(key, { status: task.status, tasks: [] });
-    }
-    groupMap.get(key)!.tasks.push(task);
-  }
-
-  const groups: StatusGroup[] = [...groupMap.values()].sort((a, b) => {
-    const ai = a.status ? (statusOrderMap.get(a.status.id) ?? 999) : 999;
-    const bi = b.status ? (statusOrderMap.get(b.status.id) ?? 999) : 999;
-    return ai - bi;
-  });
-
   return (
     <div className="px-8 py-8 max-w-6xl mx-auto">
       {/* Header */}
@@ -172,7 +152,7 @@ export default async function TasksPage({
             </EmptyHeader>
           </Empty>
         ) : (
-          <TaskGroups groups={groups} />
+          <TaskGroups tasks={typedTasks} taskStatuses={taskStatuses ?? []} />
         )}
       </div>
     </div>

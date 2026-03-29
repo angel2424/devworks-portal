@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -27,7 +27,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "@/components/ui/select";
+} from "@/components/ui/select"; // still used for priority, assigned, phase
 import {
   Table,
   TableBody,
@@ -100,6 +100,80 @@ function initials(name: string | null) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
+// ─── Cycle Button ─────────────────────────────────────────────────────────────
+
+function CycleButton({
+  color,
+  isPending,
+  onClick,
+}: {
+  color: string | null;
+  isPending: boolean;
+  onClick: () => void;
+}) {
+  const isDone    = color === "green";
+  const isAmber   = color === "amber" || color === "yellow";
+  const isRed     = color === "red";
+  const isBlue    = color === "blue";
+  const isEmpty   = !color || color === "gray";
+
+  const baseClass = "w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 transition-all focus:outline-none";
+
+  if (isPending) {
+    return (
+      <button disabled className={`${baseClass} border-gray-200 bg-white cursor-wait`}>
+        <svg className="w-2.5 h-2.5 text-gray-300 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </button>
+    );
+  }
+
+  if (isDone) {
+    return (
+      <button onClick={onClick} title="Cambiar estado" className={`${baseClass} border-green-500 bg-green-500 text-white hover:bg-green-600 hover:border-green-600`}>
+        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+    );
+  }
+
+  if (isAmber) {
+    return (
+      <button onClick={onClick} title="Cambiar estado" className={`${baseClass} border-amber-400 bg-amber-50 hover:bg-amber-100`}>
+        <span className="w-2 h-2 rounded-full bg-amber-400" />
+      </button>
+    );
+  }
+
+  if (isRed) {
+    return (
+      <button onClick={onClick} title="Cambiar estado" className={`${baseClass} border-red-400 bg-red-50 hover:bg-red-100`}>
+        <svg className="w-2.5 h-2.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h12" />
+        </svg>
+      </button>
+    );
+  }
+
+  if (isBlue) {
+    return (
+      <button onClick={onClick} title="Cambiar estado" className={`${baseClass} border-blue-400 bg-blue-50 hover:bg-blue-100`}>
+        <span className="w-2 h-2 rounded-full bg-blue-400" />
+      </button>
+    );
+  }
+
+  // Default: empty ring (pending / gray)
+  return (
+    <button onClick={onClick} title="Cambiar estado" className={`${baseClass} border-gray-300 bg-white hover:border-brand-400 hover:bg-brand-50`}>
+      {!isEmpty && <span className="w-2 h-2 rounded-full bg-gray-300" />}
+    </button>
+  );
+}
+
 // ─── Sortable Task Row ────────────────────────────────────────────────────────
 
 function SortableTaskRow({
@@ -124,6 +198,16 @@ function SortableTaskRow({
 
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft]     = useState(task.title);
+  const [isCycling, startCycle]         = useTransition();
+
+  function cycleStatus() {
+    const currentIdx = taskStatuses.findIndex((s) => s.id === task.status.id);
+    const next = taskStatuses[(currentIdx + 1) % taskStatuses.length];
+    if (!next) return;
+    startCycle(() => {
+      onUpdateTask(task.id, { status_id: next.id }, { status: next });
+    });
+  }
 
   function saveTitle() {
     setTitleEditing(false);
@@ -159,32 +243,37 @@ function SortableTaskRow({
         </button>
       </TableCell>
 
-      {/* Title */}
+      {/* Title + cycle button */}
       <TableCell className="py-2.5 pl-2 min-w-[200px]">
-        {titleEditing ? (
-          <input
-            autoFocus
-            value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  saveTitle();
-              if (e.key === "Escape") { setTitleEditing(false); setTitleDraft(task.title); }
-            }}
-            className="w-full text-sm bg-transparent border-b border-brand-400 focus:outline-none py-0.5 text-gray-900"
-          />
-        ) : (
-          <span
-            onClick={() => { setTitleEditing(true); setTitleDraft(task.title); }}
-            className="text-sm text-gray-800 font-medium cursor-text block hover:text-brand-600 transition-colors"
-            title={task.title}
-          >
-            {task.title}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <CycleButton color={task.status.color} isPending={isCycling} onClick={cycleStatus} />
+          {titleEditing ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  saveTitle();
+                if (e.key === "Escape") { setTitleEditing(false); setTitleDraft(task.title); }
+              }}
+              className="flex-1 text-sm bg-transparent border-b border-brand-400 focus:outline-none py-0.5 text-gray-900"
+            />
+          ) : (
+            <span
+              onClick={() => { setTitleEditing(true); setTitleDraft(task.title); }}
+              className={`text-sm font-medium cursor-text block hover:text-brand-600 transition-colors ${
+                task.status.color === "green" ? "line-through text-gray-400" : "text-gray-800"
+              }`}
+              title={task.title}
+            >
+              {task.title}
+            </span>
+          )}
+        </div>
       </TableCell>
 
-      {/* Status */}
+      {/* Status — click badge to jump to any state */}
       <TableCell className="py-2.5">
         <Select
           value={task.status.id}
@@ -424,6 +513,93 @@ function PhaseTable({
   );
 }
 
+// ─── Mobile Task Card ─────────────────────────────────────────────────────────
+
+function MobileTaskCard({
+  task,
+  taskStatuses,
+  onUpdateTask,
+  onDeleteTask,
+}: {
+  task: TaskRow;
+  taskStatuses: StatusInfo[];
+  onUpdateTask: Props["onUpdateTask"];
+  onDeleteTask: Props["onDeleteTask"];
+}) {
+  const [isCycling, startCycle] = useTransition();
+
+  function cycleStatus() {
+    const currentIdx = taskStatuses.findIndex((s) => s.id === task.status.id);
+    const next = taskStatuses[(currentIdx + 1) % taskStatuses.length];
+    if (!next) return;
+    startCycle(() => {
+      onUpdateTask(task.id, { status_id: next.id }, { status: next });
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 flex flex-col">
+      {/* Top row: cycle button + status badge (tappable) + delete */}
+      <div className="flex items-center justify-between gap-1 mb-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <CycleButton color={task.status.color} isPending={isCycling} onClick={cycleStatus} />
+          <Select
+            value={task.status.id}
+            onValueChange={(val) => {
+              const s = taskStatuses.find((x) => x.id === val);
+              if (s) onUpdateTask(task.id, { status_id: val }, { status: s });
+            }}
+          >
+            <SelectTrigger className="h-auto border-0 shadow-none p-0 focus:ring-0 w-auto gap-0 [&>svg]:hidden">
+              <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none cursor-pointer hover:opacity-75 transition-opacity ${statusBadgeClass(task.status.color)}`}>
+                {task.status.label}
+              </Badge>
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {taskStatuses.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <button
+          onClick={() => onDeleteTask(task.id)}
+          className="w-6 h-6 flex items-center justify-center rounded-md text-gray-300 active:text-red-500 active:bg-red-50 transition-colors shrink-0"
+          aria-label="Eliminar tarea"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Title */}
+      <p className={`text-sm font-medium leading-snug line-clamp-2 flex-1 ${
+        task.status.color === "green" ? "line-through text-gray-400" : "text-gray-800"
+      }`}>
+        {task.title}
+      </p>
+
+      {/* Footer */}
+      <div className="mt-auto pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1">
+        <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none ${statusBadgeClass(task.priority.color)}`}>
+          {task.priority.label}
+        </Badge>
+        {task.due_date ? (
+          <span className={`text-[11px] font-medium shrink-0 ${isOverdue(task.due_date) ? "text-red-500" : "text-gray-400"}`}>
+            {task.due_date.slice(5)}
+          </span>
+        ) : task.assigned ? (
+          <div className="flex items-center gap-1 min-w-0">
+            <Avatar className="h-4 w-4 shrink-0">
+              <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
+                {initials(task.assigned.full_name)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-[11px] text-gray-400 truncate">{task.assigned.full_name?.split(" ")[0]}</span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Table View ──────────────────────────────────────────────────────────
 
 export function TaskTableView({
@@ -480,47 +656,13 @@ export function TaskTableView({
             {/* Grid of task cards */}
             <div className="grid grid-cols-2 gap-2.5">
               {phaseTasks.map((task) => (
-                <div key={task.id} className="rounded-xl border border-gray-200 bg-white p-3 flex flex-col">
-                  {/* Status + delete */}
-                  <div className="flex items-start justify-between gap-1 mb-2">
-                    <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none ${statusBadgeClass(task.status.color)}`}>
-                      {task.status.label}
-                    </Badge>
-                    <button
-                      onClick={() => onDeleteTask(task.id)}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-gray-300 active:text-red-500 active:bg-red-50 transition-colors shrink-0"
-                      aria-label="Eliminar tarea"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Title */}
-                  <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 flex-1">
-                    {task.title}
-                  </p>
-
-                  {/* Footer */}
-                  <div className="mt-auto pt-2.5 border-t border-gray-100 flex items-center justify-between gap-1">
-                    <Badge variant="outline" className={`text-[11px] px-1.5 py-0.5 leading-none ${statusBadgeClass(task.priority.color)}`}>
-                      {task.priority.label}
-                    </Badge>
-                    {task.due_date ? (
-                      <span className={`text-[11px] font-medium shrink-0 ${isOverdue(task.due_date) ? "text-red-500" : "text-gray-400"}`}>
-                        {task.due_date.slice(5)}
-                      </span>
-                    ) : task.assigned ? (
-                      <div className="flex items-center gap-1 min-w-0">
-                        <Avatar className="h-4 w-4 shrink-0">
-                          <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
-                            {initials(task.assigned.full_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-[11px] text-gray-400 truncate">{task.assigned.full_name?.split(" ")[0]}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+                <MobileTaskCard
+                  key={task.id}
+                  task={task}
+                  taskStatuses={taskStatuses}
+                  onUpdateTask={onUpdateTask}
+                  onDeleteTask={onDeleteTask}
+                />
               ))}
             </div>
           </div>

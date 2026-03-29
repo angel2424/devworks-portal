@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MonthView } from "../../../components/MonthView";
+import { MonthView } from "@/components/dashboard/maintenance/MonthView";
 
 type Props = {
   params: Promise<{ planId: string; monthId: string }>;
@@ -28,7 +28,7 @@ export default async function MonthDetailPage({ params }: Props) {
           client:clients(id, name)
         ),
         tasks:maintenance_tasks(
-          id, week_number, title, responsible, estimated_duration, order_index, notes, completed_at,
+          id, week_number, title, responsible, estimated_duration, order_index, notes, completed_at, internal_only,
           status:catalog_status!status_id(id, label, color, value)
         ),
         metrics:maintenance_metrics(
@@ -85,6 +85,7 @@ export default async function MonthDetailPage({ params }: Props) {
           notes: t.notes as string | null,
           completed_at: t.completed_at as string | null,
           week_number: t.week_number as number,
+          internal_only: (t.internal_only as boolean) ?? false,
           status: (Array.isArray(t.status) ? t.status[0] ?? null : t.status ?? null) as {
             id: string; label: string; color: string; value: string
           } | null,

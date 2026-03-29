@@ -10,6 +10,7 @@ import {
   type TaskRow,
   type StatusInfo,
 } from "@/components/dashboard/projects/TasksViewer";
+import { DeleteProjectButton } from "./DeleteProjectButton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -196,6 +197,7 @@ export default async function ProjectDetailPage({
             >
               {project.status?.label ?? "Sin estado"}
             </Badge>
+            <DeleteProjectButton projectId={id} projectName={project.name} />
           </div>
         </div>
 

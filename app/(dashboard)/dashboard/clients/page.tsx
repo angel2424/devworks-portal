@@ -45,7 +45,7 @@ export default async function ClientsPage() {
   const teamMembers: TeamMember[] = (rawTeam ?? []) as TeamMember[];
 
   return (
-    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-7xl">
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 max-w-6xl mx-auto">
       <div className="mb-6 md:mb-8">
         <h1 className="font-heading text-xl md:text-2xl text-gray-900">
           CRM — Clientes
