@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
+import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus, setTaskCompletedDate } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 import { Eye, EyeOff, NotebookPen, User, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,10 +52,16 @@ export function TaskRow({ task, statuses, planId }: Props) {
   const [isPendingNotes, startNotes] = useTransition();
   const [isPendingInternal, startInternal] = useTransition();
   const [isPendingStatus, startStatus] = useTransition();
+  const [isPendingDate, startDate] = useTransition();
   const [notesOpen, setNotesOpen] = useState(!!task.notes);
   const [notesValue, setNotesValue] = useState(task.notes ?? "");
 
-  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus;
+  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus || isPendingDate;
+
+  function handleCompletedDateChange(dateStr: string) {
+    if (!dateStr) return;
+    startDate(() => setTaskCompletedDate(task.id, dateStr, planId));
+  }
 
   function handleSetStatus(statusId: string, statusValue: string) {
     if (isPending) return;
@@ -203,13 +209,17 @@ export function TaskRow({ task, statuses, planId }: Props) {
                 {task.estimated_duration}
               </span>
             )}
-            {isDone && task.completed_at && (
-              <span className="text-xs text-green-600">
-                Completada {new Date(task.completed_at).toLocaleDateString("es-MX", {
-                  day: "numeric",
-                  month: "short",
-                })}
-              </span>
+            {isDone && (
+              <label className={cn("flex items-center gap-1 text-xs", isPendingDate ? "opacity-50" : "text-green-600")}>
+                <span className="shrink-0">Completada</span>
+                <input
+                  type="date"
+                  defaultValue={task.completed_at ? task.completed_at.split("T")[0] : ""}
+                  onChange={(e) => handleCompletedDateChange(e.target.value)}
+                  disabled={isPendingDate}
+                  className="text-xs text-green-600 bg-transparent border-none outline-none cursor-pointer hover:underline disabled:cursor-wait w-[7rem]"
+                />
+              </label>
             )}
           </div>
 

@@ -118,6 +118,34 @@ export async function setTaskSkipped(
   revalidatePath(`/dashboard/maintenance/${planId}`);
 }
 
+export async function setTaskCompletedDate(
+  taskId: string,
+  completedAt: string | null, // "YYYY-MM-DD" or null
+  planId: string
+) {
+  const supabase = await createClient();
+
+  let weekNumber: number | undefined;
+
+  if (completedAt) {
+    const day = new Date(completedAt + "T12:00:00").getDate();
+    weekNumber = day <= 7 ? 1 : day <= 14 ? 2 : day <= 21 ? 3 : 4;
+  }
+
+  const updateData: Record<string, unknown> = {
+    completed_at: completedAt ? new Date(completedAt + "T12:00:00").toISOString() : null,
+  };
+  if (weekNumber !== undefined) updateData.week_number = weekNumber;
+
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .update(updateData)
+    .eq("id", taskId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
 export async function saveTaskNotes(taskId: string, notes: string, planId: string) {
   const supabase = await createClient();
   const { error } = await supabase
