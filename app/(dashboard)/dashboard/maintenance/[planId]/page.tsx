@@ -75,7 +75,6 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
   // Normalize
   const client = Array.isArray(raw.client) ? raw.client[0] ?? null : raw.client ?? null;
   const status = Array.isArray(raw.status) ? raw.status[0] ?? null : raw.status ?? null;
-  const project = Array.isArray(raw.project) ? raw.project[0] ?? null : raw.project ?? null;
 
   const months = ((raw.months ?? []) as Record<string, unknown>[])
     .map((m) => {

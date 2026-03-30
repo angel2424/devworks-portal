@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
-import { Eye, EyeOff, Notebook, NotebookPen, User, ChevronDown } from "lucide-react";
+import { Eye, EyeOff, NotebookPen, User, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

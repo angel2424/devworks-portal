@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Bookmark, CheckCircle, Dot, Save } from "lucide-react";
+import { Bookmark, CheckCircle, Dot } from "lucide-react";
 
 type TimelineMonth = {
   id: string;

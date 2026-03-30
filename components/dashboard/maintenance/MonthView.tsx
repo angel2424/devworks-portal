@@ -7,7 +7,7 @@ import { AddTaskRow } from "./AddTaskRow";
 import { MetricsForm } from "./MetricsForm";
 import { MetricsComparison } from "./MetricsComparison";
 import { ReportDownloadButton } from "./ReportDownloadButton";
-import { BarChart, ChartBar } from "lucide-react";
+import { BarChart } from "lucide-react";
 
 type Metrics = {
   id: string;

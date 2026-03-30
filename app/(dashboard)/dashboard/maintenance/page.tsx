@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { PlansTable, type PlanRow, type PlanMonth } from "@/components/dashboard/maintenance/Table";
-import { Plus, PlusCircle } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default async function MaintenancePage() {
   const supabase = await createClient();
