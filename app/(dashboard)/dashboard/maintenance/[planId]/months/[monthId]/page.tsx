@@ -96,16 +96,28 @@ export default async function MonthDetailPage({ params }: Props) {
         }),
       metrics: (() => {
         const arr = Array.isArray(rawMetrics) ? rawMetrics : rawMetrics ? [rawMetrics] : [];
-        return (arr[0] ?? null) as {
-          id: string;
-          total_clicks: number | null;
-          total_impressions: number | null;
-          avg_ctr: number | null;
-          avg_position: number | null;
-          total_sessions: number | null;
-          notes: string | null;
-          top_pages: unknown;
-        } | null;
+        const base = arr[0] ?? null;
+        if (!base) return null;
+        return {
+          ...(base as {
+            id: string;
+            total_clicks: number | null;
+            total_impressions: number | null;
+            avg_ctr: number | null;
+            avg_position: number | null;
+            total_sessions: number | null;
+            notes: string | null;
+            top_pages: unknown;
+          }),
+          pagespeed_url: null,
+          pagespeed_mobile: null,
+          pagespeed_desktop: null,
+          gsc_site_url: null,
+          gsc_top_queries: null,
+          gsc_top_pages: null,
+          gsc_top_countries: null,
+          gsc_fetched_at: null,
+        };
       })(),
     };
   }
