@@ -91,6 +91,7 @@ export default async function ProjectDetailPage({
         title,
         description,
         due_date,
+        estimated_duration,
         order_index,
         status:catalog_status!status_id(id, label, color),
         priority:catalog_status!priority_id(id, label, color),

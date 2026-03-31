@@ -7,7 +7,8 @@ import { AddTaskRow } from "./AddTaskRow";
 import { MetricsForm } from "./MetricsForm";
 import { MetricsComparison } from "./MetricsComparison";
 import { ReportDownloadButton } from "./ReportDownloadButton";
-import { BarChart } from "lucide-react";
+import { BarChart, ChevronRight } from "lucide-react";
+import type { PageSpeedResult } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 
 type Metrics = {
   id: string;
@@ -18,6 +19,14 @@ type Metrics = {
   total_sessions: number | null;
   notes: string | null;
   top_pages: unknown;
+  pagespeed_url: string | null;
+  pagespeed_mobile: PageSpeedResult | null;
+  pagespeed_desktop: PageSpeedResult | null;
+  gsc_site_url: string | null;
+  gsc_top_queries: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+  gsc_top_pages: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+  gsc_top_countries: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+  gsc_fetched_at: string | null;
 } | null;
 
 type Month = {
@@ -48,10 +57,20 @@ const MONTH_NAMES = [
 
 export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }: Props) {
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
+  const [expandedCompleted, setExpandedCompleted] = useState<Set<number>>(new Set());
   const [metricsOpen, setMetricsOpen] = useState(false);
 
   function toggleWeek(week: number) {
     setCollapsedWeeks((prev) => {
+      const next = new Set(prev);
+      if (next.has(week)) next.delete(week);
+      else next.add(week);
+      return next;
+    });
+  }
+
+  function toggleCompleted(week: number) {
+    setExpandedCompleted((prev) => {
       const next = new Set(prev);
       if (next.has(week)) next.delete(week);
       else next.add(week);
@@ -125,6 +144,8 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
           <MetricsForm
             monthId={month.id}
             planId={planId}
+            month={month.month}
+            year={month.year}
             current={month.metrics}
             prev={prevMonth?.metrics ?? null}
             onSaved={() => setMetricsOpen(false)}
@@ -146,6 +167,16 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
           const isWeek4 = week === 4;
 
           if (tasks.length === 0) return null;
+
+          const STATUS_ORDER: Record<string, number> = { in_progress: 0, pending: 1, skipped: 2 };
+          const activeTasks = tasks
+            .filter((t) => t.status?.value !== "done")
+            .sort((a, b) => {
+              const diff = (STATUS_ORDER[a.status?.value ?? ""] ?? 1) - (STATUS_ORDER[b.status?.value ?? ""] ?? 1);
+              return diff;
+            });
+          const completedTasks = tasks.filter((t) => t.status?.value === "done");
+          const isCompletedExpanded = expandedCompleted.has(week);
 
           return (
             <div
@@ -193,7 +224,7 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
               {/* Task list */}
               {!isCollapsed && (
                 <div className="p-3 space-y-2">
-                  {tasks.map((task) => (
+                  {activeTasks.map((task) => (
                     <TaskRow
                       key={task.id}
                       task={task}
@@ -201,6 +232,33 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
                       planId={planId}
                     />
                   ))}
+
+                  {/* Completed tasks toggle */}
+                  {completedTasks.length > 0 && (
+                    <>
+                      <button
+                        onClick={() => toggleCompleted(week)}
+                        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-1 py-0.5 w-full"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "w-3 h-3 shrink-0 transition-transform duration-150",
+                            isCompletedExpanded && "rotate-90"
+                          )}
+                        />
+                        {completedTasks.length} completada{completedTasks.length !== 1 ? "s" : ""}
+                      </button>
+                      {isCompletedExpanded && completedTasks.map((task) => (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          statuses={taskStatuses}
+                          planId={planId}
+                        />
+                      ))}
+                    </>
+                  )}
+
                   <AddTaskRow
                     monthId={month.id}
                     weekNumber={week}

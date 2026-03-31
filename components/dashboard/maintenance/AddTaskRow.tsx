@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { addTask } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
+import { DurationInput, parseDuration } from "@/components/ui/duration-input";
 
 interface Props {
   monthId: string;
@@ -40,7 +41,7 @@ export function AddTaskRow({ monthId, weekNumber, planId }: Props) {
         await addTask(monthId, weekNumber, planId, {
           title,
           responsible,
-          estimated_duration: duration,
+          estimated_duration: parseDuration(duration) ?? duration,
         });
         setTitle("");
         setResponsible("Angel");
@@ -102,21 +103,13 @@ export function AddTaskRow({ monthId, weekNumber, planId }: Props) {
             className="w-full pl-7 pr-3 py-1.5 text-xs text-gray-700 placeholder:text-gray-400 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 transition-all"
           />
         </div>
-        <div className="relative flex-1">
-          <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <input
-            type="text"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            placeholder="Duración (ej. 2 horas)"
-            className="w-full pl-7 pr-3 py-1.5 text-xs text-gray-700 placeholder:text-gray-400 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 transition-all"
-          />
-        </div>
+        <DurationInput
+          variant="field"
+          value={duration || null}
+          onChange={(v) => setDuration(v ?? "")}
+          placeholder="Duración (ej. 2 horas)"
+          className="flex-1"
+        />
       </div>
 
       {error && (

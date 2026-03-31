@@ -30,6 +30,7 @@ export type TaskRow = {
   title: string;
   description: string | null;
   due_date: string | null;
+  estimated_duration: string | null;
   order_index: number;
   status: StatusInfo;
   priority: StatusInfo;

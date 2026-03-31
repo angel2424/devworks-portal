@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus, setTaskCompletedDate } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
+import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus, setTaskCompletedDate, updateTaskDuration, updateTaskWeek } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 import { Eye, EyeOff, NotebookPen, User, ChevronDown } from "lucide-react";
+import { DurationInput } from "@/components/ui/duration-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,10 +54,21 @@ export function TaskRow({ task, statuses, planId }: Props) {
   const [isPendingInternal, startInternal] = useTransition();
   const [isPendingStatus, startStatus] = useTransition();
   const [isPendingDate, startDate] = useTransition();
+  const [isPendingDuration, startDuration] = useTransition();
+  const [isPendingWeek, startWeek] = useTransition();
   const [notesOpen, setNotesOpen] = useState(!!task.notes);
   const [notesValue, setNotesValue] = useState(task.notes ?? "");
 
-  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus || isPendingDate;
+  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus || isPendingDate || isPendingDuration || isPendingWeek;
+
+  function handleDurationChange(duration: string | null) {
+    startDuration(() => updateTaskDuration(task.id, duration, planId));
+  }
+
+  function handleWeekChange(week: number) {
+    if (week === task.week_number) return;
+    startWeek(() => updateTaskWeek(task.id, week, planId));
+  }
 
   function handleCompletedDateChange(dateStr: string) {
     if (!dateStr) return;
@@ -201,13 +213,41 @@ export function TaskRow({ task, statuses, planId }: Props) {
               <User size={'.8rem'} />
               {task.responsible}
             </span>
-            {task.estimated_duration && (
-              <span className="flex items-center gap-1 text-xs text-gray-400">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {task.estimated_duration}
-              </span>
+            <DurationInput
+              value={task.estimated_duration}
+              onChange={handleDurationChange}
+              placeholder="+ duración"
+              disabled={isPendingDuration}
+            />
+
+            {/* Week selector — only when task is active */}
+            {!isDone && !isSkipped && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    disabled={isPendingWeek}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                    title="Cambiar semana"
+                  >
+                    <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    Sem. {task.week_number}
+                    <ChevronDown size={10} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[120px] bg-white">
+                  {[1, 2, 3, 4].map((w) => (
+                    <DropdownMenuItem
+                      key={w}
+                      onSelect={() => handleWeekChange(w)}
+                      className={cn("text-xs cursor-pointer", task.week_number === w && "font-semibold")}
+                    >
+                      Semana {w}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             {isDone && (
               <label className={cn("flex items-center gap-1 text-xs", isPendingDate ? "opacity-50" : "text-green-600")}>

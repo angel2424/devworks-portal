@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -170,6 +171,26 @@ export async function toggleTaskInternalOnly(
   revalidatePath(`/dashboard/maintenance/${planId}`);
 }
 
+export async function updateTaskDuration(taskId: string, duration: string | null, planId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .update({ estimated_duration: duration })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
+export async function updateTaskWeek(taskId: string, weekNumber: number, planId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .update({ week_number: weekNumber })
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
 // ─── Metrics ──────────────────────────────────────────────────────────────────
 
 export async function saveMetrics(
@@ -202,6 +223,205 @@ export async function saveMetrics(
 
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
+// ─── PageSpeed ────────────────────────────────────────────────────────────────
+
+export type PageSpeedMetric = {
+  displayValue: string;
+  score: number; // 0–1
+};
+
+export type PageSpeedResult = {
+  score: number; // 0–100
+  metrics: {
+    fcp: PageSpeedMetric;
+    lcp: PageSpeedMetric;
+    tbt: PageSpeedMetric;
+    cls: PageSpeedMetric;
+    si:  PageSpeedMetric;
+  };
+  fetchedAt: string;
+};
+
+export async function analyzePageSpeed(
+  monthId: string,
+  planId: string,
+  url: string,
+): Promise<{ mobile: PageSpeedResult; desktop: PageSpeedResult }> {
+  const apiKey = process.env.PAGESPEED_API_KEY;
+  if (!apiKey) throw new Error("PAGESPEED_API_KEY no está configurado en el servidor.");
+
+  async function fetchStrategy(strategy: "mobile" | "desktop"): Promise<PageSpeedResult> {
+    const endpoint =
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed` +
+      `?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&key=${apiKey}`;
+
+    const res = await fetch(endpoint, { cache: "no-store" });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`PageSpeed API error (${strategy}): ${res.status} — ${body.slice(0, 300)}`);
+    }
+
+    const data = await res.json();
+    const audits = data.lighthouseResult.audits as Record<string, { displayValue?: string; score?: number }>;
+    const perfScore: number = data.lighthouseResult.categories.performance.score;
+
+    function metric(key: string): PageSpeedMetric {
+      return {
+        displayValue: audits[key]?.displayValue ?? "—",
+        score:        audits[key]?.score        ?? 0,
+      };
+    }
+
+    return {
+      score: Math.round(perfScore * 100),
+      metrics: {
+        fcp: metric("first-contentful-paint"),
+        lcp: metric("largest-contentful-paint"),
+        tbt: metric("total-blocking-time"),
+        cls: metric("cumulative-layout-shift"),
+        si:  metric("speed-index"),
+      },
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  const [mobile, desktop] = await Promise.all([
+    fetchStrategy("mobile"),
+    fetchStrategy("desktop"),
+  ]);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const { data: existing } = await supabase
+    .from("maintenance_metrics")
+    .select("id")
+    .eq("month_id", monthId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("maintenance_metrics")
+      .update({ pagespeed_url: url, pagespeed_mobile: mobile, pagespeed_desktop: desktop })
+      .eq("month_id", monthId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from("maintenance_metrics")
+      .insert({ month_id: monthId, pagespeed_url: url, pagespeed_mobile: mobile, pagespeed_desktop: desktop, entered_by: user.id });
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+  return { mobile, desktop };
+}
+
+// ─── Google Search Console ────────────────────────────────────────────────────
+
+export type GSCRow = {
+  key: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;      // 0–1
+  position: number; // avg position
+};
+
+async function getGoogleToken(): Promise<string> {
+  const credJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!credJson) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON no está configurado en el servidor.");
+
+  const creds = JSON.parse(credJson) as { client_email: string; private_key: string };
+  const now = Math.floor(Date.now() / 1000);
+
+  const header  = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({
+    iss:   creds.client_email,
+    scope: "https://www.googleapis.com/auth/webmasters.readonly",
+    aud:   "https://oauth2.googleapis.com/token",
+    exp:   now + 3600,
+    iat:   now,
+  })).toString("base64url");
+
+  const input      = `${header}.${payload}`;
+  const privateKey = crypto.createPrivateKey(creds.private_key);
+  const sig        = crypto.sign("sha256", Buffer.from(input), privateKey).toString("base64url");
+  const jwt        = `${input}.${sig}`;
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method:  "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body:    new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }),
+    cache:   "no-store",
+  });
+
+  if (!res.ok) throw new Error(`Token error: ${(await res.text()).slice(0, 300)}`);
+  return ((await res.json()) as { access_token: string }).access_token;
+}
+
+export async function fetchSearchConsoleData(
+  monthId: string,
+  planId: string,
+  siteUrl: string,
+  month: number,
+  year: number,
+): Promise<{ queries: GSCRow[]; pages: GSCRow[]; countries: GSCRow[] }> {
+  const token = await getGoogleToken();
+
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay   = new Date(year, month, 0).getDate();
+  const endDate   = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  async function queryDimension(dimension: string): Promise<GSCRow[]> {
+    const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`;
+    const res = await fetch(endpoint, {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body:    JSON.stringify({ startDate, endDate, dimensions: [dimension], rowLimit: 10 }),
+      cache:   "no-store",
+    });
+    if (!res.ok) throw new Error(`GSC error (${dimension}): ${res.status} — ${(await res.text()).slice(0, 300)}`);
+    type RawRow = { keys: string[]; clicks: number; impressions: number; ctr: number; position: number };
+    const data = await res.json() as { rows?: RawRow[] };
+    return (data.rows ?? []).map((r) => ({
+      key: r.keys[0], clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position,
+    }));
+  }
+
+  const [queries, pages, countries] = await Promise.all([
+    queryDimension("query"),
+    queryDimension("page"),
+    queryDimension("country"),
+  ]);
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const now = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from("maintenance_metrics")
+    .select("id")
+    .eq("month_id", monthId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("maintenance_metrics")
+      .update({ gsc_site_url: siteUrl, gsc_top_queries: queries, gsc_top_pages: pages, gsc_top_countries: countries, gsc_fetched_at: now })
+      .eq("month_id", monthId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from("maintenance_metrics")
+      .insert({ month_id: monthId, gsc_site_url: siteUrl, gsc_top_queries: queries, gsc_top_pages: pages, gsc_top_countries: countries, gsc_fetched_at: now, entered_by: user.id });
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+  return { queries, pages, countries };
 }
 
 // ─── Plan lifecycle ────────────────────────────────────────────────────────────

@@ -55,7 +55,9 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
           status:catalog_status!status_id(id, label, color, value)
         ),
         metrics:maintenance_metrics(
-          id, total_clicks, total_impressions, avg_ctr, avg_position, total_sessions, notes, top_pages
+          id, total_clicks, total_impressions, avg_ctr, avg_position, total_sessions, notes, top_pages,
+          pagespeed_url, pagespeed_mobile, pagespeed_desktop,
+          gsc_site_url, gsc_top_queries, gsc_top_pages, gsc_top_countries, gsc_fetched_at
         )
       )
     `)
@@ -121,6 +123,14 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
           total_sessions: number | null;
           notes: string | null;
           top_pages: unknown;
+          pagespeed_url: string | null;
+          pagespeed_mobile: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").PageSpeedResult | null;
+          pagespeed_desktop: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").PageSpeedResult | null;
+          gsc_site_url: string | null;
+          gsc_top_queries: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+          gsc_top_pages: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+          gsc_top_countries: import("@/app/(dashboard)/dashboard/maintenance/[planId]/actions").GSCRow[] | null;
+          gsc_fetched_at: string | null;
         } | null,
       };
     })
@@ -211,7 +221,7 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
           prevMonth={prevMonth}
           taskStatuses={taskStatuses ?? []}
           planId={planId}
-          clientName={client?.name ?? "Sin cliente"}
+          clientName={client?.company ?? "Sin cliente"}
         />
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">

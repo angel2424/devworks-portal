@@ -19,7 +19,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash2, X } from "lucide-react";
+import { ChevronRight, GripVertical, Trash2, X } from "lucide-react";
+import { DurationInput } from "@/components/ui/duration-input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -368,7 +369,7 @@ function SortableTaskRow({
       </TableCell>
 
       {/* Due date */}
-      <TableCell className="py-2.5 pr-2">
+      <TableCell className="py-2.5">
         <input
           type="date"
           value={task.due_date ?? ""}
@@ -379,6 +380,15 @@ function SortableTaskRow({
           className={`text-xs bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer w-[104px] ${
             isOverdue(task.due_date) ? "text-red-500" : task.due_date ? "text-gray-500" : "text-gray-300"
           }`}
+        />
+      </TableCell>
+
+      {/* Duration */}
+      <TableCell className="py-2.5 pr-2">
+        <DurationInput
+          value={task.estimated_duration}
+          onChange={(v) => onUpdateTask(task.id, { estimated_duration: v }, { estimated_duration: v })}
+          placeholder="—"
         />
       </TableCell>
 
@@ -419,11 +429,13 @@ function PhaseTable({
   onReorderTasks: Props["onReorderTasks"];
   onDeleteTask: Props["onDeleteTask"];
 }) {
-  const phaseId  = phase?.id ?? null;
-  const taskIds  = tasks.map((t) => t.id);
-  const done     = tasks.filter((t) => t.status.color === "green").length;
-  const total    = tasks.length;
-  const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+  const phaseId       = phase?.id ?? null;
+  const activeTasks   = tasks.filter((t) => t.status.color !== "green");
+  const completedTasks = tasks.filter((t) => t.status.color === "green");
+  const done          = completedTasks.length;
+  const total         = tasks.length;
+  const progress      = total > 0 ? Math.round((done / total) * 100) : 0;
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const sensors = useSensors(
     useSensor(SmartPointerSensor, { activationConstraint: { distance: 6 } }),
@@ -433,10 +445,10 @@ function PhaseTable({
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
-    const oldIndex = tasks.findIndex((t) => t.id === active.id);
-    const newIndex = tasks.findIndex((t) => t.id === over.id);
+    const oldIndex = activeTasks.findIndex((t) => t.id === active.id);
+    const newIndex = activeTasks.findIndex((t) => t.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
-    onReorderTasks(phaseId, arrayMove(tasks, oldIndex, newIndex).map((t) => t.id));
+    onReorderTasks(phaseId, arrayMove(activeTasks, oldIndex, newIndex).map((t) => t.id));
   }
 
   return (
@@ -478,14 +490,46 @@ function PhaseTable({
             <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Prioridad</TableHead>
             <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Responsable</TableHead>
             <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Fase</TableHead>
-            <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider pr-2">Vence</TableHead>
+            <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Vence</TableHead>
+            <TableHead className="text-xs font-semibold text-gray-400 uppercase tracking-wider pr-2">Tiempo</TableHead>
             <TableHead className="w-8 pr-3" />
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-              {tasks.map((task) => (
+          <SortableContext items={activeTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            {activeTasks.map((task) => (
+              <SortableTaskRow
+                key={task.id}
+                task={task}
+                phases={phases}
+                taskStatuses={taskStatuses}
+                priorities={priorities}
+                teamMembers={teamMembers}
+                onUpdateTask={onUpdateTask}
+                onDeleteTask={onDeleteTask}
+              />
+            ))}
+          </SortableContext>
+
+          {/* Completed tasks toggle */}
+          {completedTasks.length > 0 && (
+            <>
+              <TableRow className="hover:bg-transparent border-t border-gray-100">
+                <TableCell colSpan={9} className="py-1.5 pl-9">
+                  <button
+                    onClick={() => setShowCompleted((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors group"
+                  >
+                    <ChevronRight
+                      className={`w-3 h-3 transition-transform duration-150 ${showCompleted ? "rotate-90" : ""}`}
+                    />
+                    <span>{completedTasks.length} completada{completedTasks.length !== 1 ? "s" : ""}</span>
+                  </button>
+                </TableCell>
+              </TableRow>
+
+              {showCompleted && completedTasks.map((task) => (
                 <SortableTaskRow
                   key={task.id}
                   task={task}
@@ -497,11 +541,12 @@ function PhaseTable({
                   onDeleteTask={onDeleteTask}
                 />
               ))}
-            </SortableContext>
+            </>
+          )}
 
           {tasks.length === 0 && (
             <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={8} className="py-4 pl-10">
+              <TableCell colSpan={9} className="py-4 pl-10">
                 <span className="text-xs text-gray-300 italic">Sin tareas en esta fase</span>
               </TableCell>
             </TableRow>
@@ -639,34 +684,75 @@ export function TaskTableView({
 
   // ── Mobile cards ────────────────────────────────────────────────────────────
   const mobileGroups = groups.filter(({ tasks: t }) => t.length > 0);
+  const [mobileShowCompleted, setMobileShowCompleted] = useState<Set<string>>(new Set());
+
+  function toggleMobileCompleted(key: string) {
+    setMobileShowCompleted((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   return (
     <>
       {/* Mobile */}
       <div className="space-y-6 md:hidden">
-        {mobileGroups.map(({ phase, phaseId, tasks: phaseTasks }) => (
-          <div key={phaseId ?? "none"}>
-            {/* Phase label */}
-            <div className="flex items-center gap-2 px-1 mb-2.5">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                {phase?.name ?? "Sin fase"}
-              </span>
-              <span className="text-xs text-gray-400">({phaseTasks.length})</span>
+        {mobileGroups.map(({ phase, phaseId, tasks: phaseTasks }) => {
+          const key = phaseId ?? "none";
+          const activeMobile = phaseTasks.filter((t) => t.status.color !== "green");
+          const completedMobile = phaseTasks.filter((t) => t.status.color === "green");
+          const showC = mobileShowCompleted.has(key);
+          return (
+            <div key={key}>
+              {/* Phase label */}
+              <div className="flex items-center gap-2 px-1 mb-2.5">
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  {phase?.name ?? "Sin fase"}
+                </span>
+                <span className="text-xs text-gray-400">({phaseTasks.length})</span>
+              </div>
+              {/* Grid of active task cards */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {activeMobile.map((task) => (
+                  <MobileTaskCard
+                    key={task.id}
+                    task={task}
+                    taskStatuses={taskStatuses}
+                    onUpdateTask={onUpdateTask}
+                    onDeleteTask={onDeleteTask}
+                  />
+                ))}
+              </div>
+              {/* Completed toggle */}
+              {completedMobile.length > 0 && (
+                <div className="mt-2.5">
+                  <button
+                    onClick={() => toggleMobileCompleted(key)}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 px-1 py-1"
+                  >
+                    <ChevronRight className={`w-3 h-3 transition-transform duration-150 ${showC ? "rotate-90" : ""}`} />
+                    {completedMobile.length} completada{completedMobile.length !== 1 ? "s" : ""}
+                  </button>
+                  {showC && (
+                    <div className="grid grid-cols-2 gap-2.5 mt-1 opacity-60">
+                      {completedMobile.map((task) => (
+                        <MobileTaskCard
+                          key={task.id}
+                          task={task}
+                          taskStatuses={taskStatuses}
+                          onUpdateTask={onUpdateTask}
+                          onDeleteTask={onDeleteTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {/* Grid of task cards */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {phaseTasks.map((task) => (
-                <MobileTaskCard
-                  key={task.id}
-                  task={task}
-                  taskStatuses={taskStatuses}
-                  onUpdateTask={onUpdateTask}
-                  onDeleteTask={onDeleteTask}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Desktop: one card+table per phase */}
