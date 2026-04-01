@@ -54,7 +54,7 @@ function priorityBadgeClass(color: string | null | undefined) {
   return statusBadgeClass(color);
 }
 
-function formatDueDate(dateStr: string | null): {
+function formatDueDate(dateStr: string | null, isDone = false): {
   label: string;
   state: "expired" | "today" | "soon" | "normal" | "none";
 } {
@@ -65,7 +65,7 @@ function formatDueDate(dateStr: string | null): {
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   const label = date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
-  if (diffDays < 0)  return { label, state: "expired" };
+  if (diffDays < 0)  return { label, state: isDone ? "normal" : "expired" };
   if (diffDays === 0) return { label: "Hoy", state: "today" };
   if (diffDays <= 3)  return { label, state: "soon" };
   return { label, state: "normal" };
@@ -151,8 +151,8 @@ function TaskRowItem({
   onUpdate: (id: string, db: Record<string, unknown>, local: Partial<TaskRow>) => void;
 }) {
   const [isCycling, startCycle] = useTransition();
-  const due = formatDueDate(task.due_date);
   const isDone = task.status?.color === "green";
+  const due = formatDueDate(task.due_date, isDone);
 
   function cycleStatus() {
     const currentIdx = taskStatuses.findIndex((s) => s.id === task.status?.id);

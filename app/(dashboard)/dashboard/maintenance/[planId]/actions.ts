@@ -424,6 +424,89 @@ export async function fetchSearchConsoleData(
   return { queries, pages, countries };
 }
 
+// ─── Month lifecycle ───────────────────────────────────────────────────────────
+
+export async function createCurrentMonthIfMissing(planId: string) {
+  const supabase = await createClient();
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  // Check if this calendar month already exists for this plan
+  const { data: existing } = await supabase
+    .from("maintenance_months")
+    .select("id")
+    .eq("plan_id", planId)
+    .eq("year", year)
+    .eq("month", month)
+    .maybeSingle();
+
+  if (existing) return { created: false, reason: "already_exists" };
+
+  // Validate plan (type + current month count)
+  const { data: plan } = await supabase
+    .from("maintenance_plans")
+    .select("type, months:maintenance_months(month_number)")
+    .eq("id", planId)
+    .single();
+
+  if (!plan) throw new Error("Plan no encontrado");
+
+  const months = (plan.months as { month_number: number }[]) ?? [];
+  const maxMonthNumber = months.reduce((max, m) => Math.max(max, m.month_number), 0);
+
+  if (plan.type === "spt" && maxMonthNumber >= 5) {
+    throw new Error("Este plan SPT ya alcanzó sus 5 meses");
+  }
+
+  const { data: pendingStatus } = await supabase
+    .from("catalog_status")
+    .select("id")
+    .eq("category", "maintenance_task_status")
+    .eq("value", "pending")
+    .single();
+
+  if (!pendingStatus) throw new Error("Estado 'pending' de tareas no encontrado");
+
+  const { data: newMonth, error: mmError } = await supabase
+    .from("maintenance_months")
+    .insert({
+      plan_id: planId,
+      month_number: maxMonthNumber + 1,
+      year,
+      month,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (mmError || !newMonth) throw new Error(mmError?.message ?? "Error al crear mes");
+
+  const { data: templates } = await supabase
+    .from("maintenance_task_templates")
+    .select("week_number, title, responsible, estimated_duration, order_index")
+    .order("week_number")
+    .order("order_index");
+
+  if (templates?.length) {
+    await supabase.from("maintenance_tasks").insert(
+      templates.map((t) => ({
+        month_id: newMonth.id,
+        week_number: t.week_number,
+        title: t.title,
+        responsible: t.responsible,
+        estimated_duration: t.estimated_duration,
+        status_id: pendingStatus.id,
+        order_index: t.order_index,
+      }))
+    );
+  }
+
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+  return { created: true };
+}
+
 // ─── Plan lifecycle ────────────────────────────────────────────────────────────
 
 export async function deactivatePlan(planId: string) {

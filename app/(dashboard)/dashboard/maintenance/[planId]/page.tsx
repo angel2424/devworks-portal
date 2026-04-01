@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MonthTimeline } from "@/components/dashboard/maintenance/MonthTimeline";
 import { MonthView } from "@/components/dashboard/maintenance/MonthView";
 import { DeactivatePlanButton } from "@/components/dashboard/maintenance/details/DeactivatePlanButton";
+import { SyncMonthButton } from "@/components/dashboard/maintenance/details/SyncMonthButton";
 import { ChevronLeft } from "lucide-react";
 
 type Props = {
@@ -149,6 +150,15 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
   const canDeactivate =
     status?.value === "active" && raw.type === "recurring";
 
+  // Detect if the current calendar month is missing (cron hasn't run yet)
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentMonthLabel = now.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+  const isCurrentMonthMissing =
+    (status?.value === "active" || status?.value === "pending_deactivation") &&
+    !months.some((m) => m.year === currentYear && m.month === currentMonth);
+
   return (
     <div className="px-8 py-8 max-w-5xl mx-auto">
       <Link
@@ -214,6 +224,10 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
           planId={planId}
         />
       </div>
+
+      {isCurrentMonthMissing && (
+        <SyncMonthButton planId={planId} monthLabel={currentMonthLabel} />
+      )}
 
       {selectedMonth ? (
         <MonthView

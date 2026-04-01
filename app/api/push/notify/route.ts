@@ -26,6 +26,111 @@ type TaskRow = {
   logs: { task_id: string; user_id: string; type: string }[];
 };
 
+type DigestTask = {
+  id: string;
+  title: string;
+  status: { value: string } | { value: string }[] | null;
+};
+
+type PushSub = {
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
+// ─── Morning digest ────────────────────────────────────────────────────────────
+
+async function sendMorningDigests(
+  admin: ReturnType<typeof adminClient>,
+  today: string,
+): Promise<{ sent: number; errors: string[] }> {
+  let sent = 0;
+  const errors: string[] = [];
+
+  // All active push subscriptions
+  const { data: allSubs } = await admin
+    .from("push_subscriptions")
+    .select("user_id, endpoint, p256dh, auth");
+
+  if (!allSubs?.length) return { sent, errors };
+
+  const userIds = [...new Set((allSubs as PushSub[]).map((s) => s.user_id))];
+
+  for (const userId of userIds) {
+    // Tasks due today assigned to this user
+    const { data: todayRaw } = await admin
+      .from("tasks")
+      .select("id, title, status:catalog_status!status_id(value)")
+      .eq("assigned_to", userId)
+      .eq("due_date", today);
+
+    // Expired tasks (past due) assigned to this user
+    const { data: expiredRaw } = await admin
+      .from("tasks")
+      .select("id, title, status:catalog_status!status_id(value)")
+      .eq("assigned_to", userId)
+      .lt("due_date", today);
+
+    const isActive = (t: DigestTask) => {
+      const s = Array.isArray(t.status) ? t.status[0] : t.status;
+      return s?.value !== "done";
+    };
+
+    const todayActive   = ((todayRaw   ?? []) as DigestTask[]).filter(isActive);
+    const expiredActive = ((expiredRaw ?? []) as DigestTask[]).filter(isActive);
+
+    if (!todayActive.length && !expiredActive.length) continue;
+
+    // Build notification copy
+    let title = "Resumen del día";
+    let body: string;
+
+    if (todayActive.length === 1 && !expiredActive.length) {
+      body = todayActive[0].title;
+    } else if (expiredActive.length === 1 && !todayActive.length) {
+      title = "Tarea vencida";
+      body = expiredActive[0].title;
+    } else {
+      const parts: string[] = [];
+      if (todayActive.length)
+        parts.push(`${todayActive.length} tarea${todayActive.length > 1 ? "s" : ""} hoy`);
+      if (expiredActive.length)
+        parts.push(`${expiredActive.length} vencida${expiredActive.length > 1 ? "s" : ""}`);
+      body = parts.join(" · ");
+    }
+
+    const pushPayload = JSON.stringify({
+      title,
+      body,
+      url: "/dashboard/tasks?me=true",
+      icon: "/icons/192.png",
+      badge: "/icons/192.png",
+    });
+
+    const userSubs = (allSubs as PushSub[]).filter((s) => s.user_id === userId);
+
+    for (const sub of userSubs) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          pushPayload,
+        );
+        sent++;
+      } catch (err: unknown) {
+        const code = (err as { statusCode?: number }).statusCode;
+        if (code === 410 || code === 404) {
+          await admin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        } else {
+          errors.push(`digest sub ${sub.endpoint}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    }
+  }
+
+  return { sent, errors };
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -55,6 +160,13 @@ export async function GET(req: NextRequest) {
 
   let sent = 0;
   const errors: string[] = [];
+
+  // ─── Morning digest (8am MX = 14:00 UTC) ──────────────────────────────────
+  if (currentHour === 14) {
+    const { sent: ds, errors: de } = await sendMorningDigests(admin, today);
+    sent += ds;
+    errors.push(...de);
+  }
 
   // ─── 24h notifications (tasks due tomorrow) ────────────────────────────────
   const tasks24h = await getEligibleTasks(admin, tomorrow, "24h");
