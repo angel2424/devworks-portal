@@ -60,8 +60,6 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
-// ─── Push notifications ──────────────────────────────────────────────────────
-// Only active when running as installed PWA (standalone mode)
 
 self.addEventListener("push", (event) => {
   let payload = {
@@ -99,20 +97,17 @@ self.addEventListener("notificationclick", (event) => {
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((windowClients) => {
-        // Focus an existing window if one is open for this origin
         for (const client of windowClients) {
           if (client.url.startsWith(self.location.origin) && "focus" in client) {
             client.navigate(url);
             return client.focus();
           }
         }
-        // Otherwise open a new window
         return clients.openWindow(url);
       }),
   );
 });
 
-// --- Strategies ---
 
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
@@ -128,7 +123,6 @@ async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
-  // Always try to refresh in the background
   const networkPromise = fetch(request)
     .then((response) => {
       if (response.ok) cache.put(request, response.clone());
@@ -136,7 +130,6 @@ async function staleWhileRevalidate(request, cacheName) {
     })
     .catch(() => null);
 
-  // Return cached immediately if available, otherwise wait for network
   return cached ?? networkPromise;
 }
 
