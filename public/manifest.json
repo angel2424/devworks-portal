@@ -1,6 +1,5 @@
 {
   "name": "DevWorks Studio",
-  "short_name": "DevWorks",
   "description": "Portal interno y de clientes — DevWorks Studio",
   "start_url": "/dashboard",
   "display": "standalone",
