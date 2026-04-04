@@ -138,10 +138,15 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
     .sort((a, b) => a.month_number - b.month_number);
 
   // Determine the month to display
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
   const activeMonth = months.find((m) => m.status === "active");
+  const currentCalendarMonth = months.find((m) => m.year === currentYear && m.month === currentMonth);
   const selectedMonth = selectedMonthId
-    ? (months.find((m) => m.id === selectedMonthId) ?? activeMonth ?? months[0])
-    : (activeMonth ?? months[0]);
+    ? (months.find((m) => m.id === selectedMonthId) ?? currentCalendarMonth ?? activeMonth ?? months[0])
+    : (currentCalendarMonth ?? activeMonth ?? months[0]);
 
   const prevMonth = selectedMonth
     ? months.find((m) => m.month_number === selectedMonth.month_number - 1) ?? null
@@ -149,11 +154,6 @@ export default async function PlanDetailPage({ params, searchParams }: Props) {
 
   const canDeactivate =
     status?.value === "active" && raw.type === "recurring";
-
-  // Detect if the current calendar month is missing (cron hasn't run yet)
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
   const currentMonthLabel = now.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
   const isCurrentMonthMissing =
     (status?.value === "active" || status?.value === "pending_deactivation") &&
