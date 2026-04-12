@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   type KBArticle,
@@ -24,6 +24,7 @@ import {
   createFolder,
   deleteArticle,
   deleteFolder,
+  moveArticle,
   renameFolder,
   updateArticle,
 } from "@/app/(dashboard)/dashboard/knowledge/actions";
@@ -34,6 +35,28 @@ import { Button } from "@/components/ui/button";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type View = "list" | "editor";
+type FolderNode = KBFolder & { children: FolderNode[] };
+
+// ─── Build Folder Tree ────────────────────────────────────────────────────────
+
+function buildFolderTree(folders: KBFolder[]): FolderNode[] {
+  const map = new Map<string, FolderNode>();
+  for (const f of folders) map.set(f.id, { ...f, children: [] });
+  const roots: FolderNode[] = [];
+  for (const node of map.values()) {
+    if (node.parent_id && map.has(node.parent_id)) {
+      map.get(node.parent_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const sort = (nodes: FolderNode[]) => {
+    nodes.sort((a, b) => a.name.localeCompare(b.name));
+    nodes.forEach((n) => sort(n.children));
+  };
+  sort(roots);
+  return roots;
+}
 
 // ─── Offline Badge ────────────────────────────────────────────────────────────
 
@@ -129,10 +152,12 @@ function NewFolderDialog({
 
 function RenameDialog({
   current,
+  title = "Renombrar",
   onConfirm,
   onCancel,
 }: {
   current: string;
+  title?: string;
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }) {
@@ -147,7 +172,7 @@ function RenameDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs">
       <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm mx-4 p-6">
         <h3 className="font-heading text-gray-900 mb-4">
-          Renombrar carpeta
+          {title}
         </h3>
         <input
           ref={inputRef}
@@ -169,29 +194,44 @@ function RenameDialog({
   );
 }
 
-// ─── Folder Item ──────────────────────────────────────────────────────────────
+// ─── Folder Tree Node ─────────────────────────────────────────────────────────
 
-function FolderItem({
-  folder,
-  isSelected,
-  articleCount,
+function FolderTreeNode({
+  node,
+  depth,
+  selectedFolderId,
+  expandedFolders,
+  articleCountByFolder,
   isOnline,
-  onClick,
+  isDraggingActive,
+  onSelectFolder,
+  onToggleExpand,
   onRename,
   onDelete,
+  onDropArticle,
 }: {
-  folder: KBFolder;
-  isSelected: boolean;
-  articleCount: number;
+  node: FolderNode;
+  depth: number;
+  selectedFolderId: string | null;
+  expandedFolders: Set<string>;
+  articleCountByFolder: Record<string, number>;
   isOnline: boolean;
-  onClick: () => void;
-  onRename: () => void;
-  onDelete: () => void;
+  isDraggingActive: boolean;
+  onSelectFolder: (id: string) => void;
+  onToggleExpand: (id: string) => void;
+  onRename: (folder: KBFolder) => void;
+  onDelete: (id: string) => void;
+  onDropArticle: (articleId: string, folderId: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
+  const isSelected = selectedFolderId === node.id;
+  const isExpanded = expandedFolders.has(node.id);
+  const hasChildren = node.children.length > 0;
+  const articleCount = articleCountByFolder[node.id] ?? 0;
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -202,89 +242,186 @@ function FolderItem({
   }, [menuOpen]);
 
   return (
-    <div className="relative group">
-      <button
-        onClick={onClick}
-        className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left cursor-pointer",
-          isSelected
-            ? "bg-brand-50 text-gray-900 font-medium"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        )}
+    <>
+      <div
+        className={cn("relative group", menuOpen && "z-20")}
+        style={{ paddingLeft: depth * 12 }}
       >
-        {/* Folder icon */}
-        <svg
-          className={cn(
-            "w-4 h-4 shrink-0 transition-colors",
-            isSelected ? "text-brand-500" : "text-gray-400"
-          )}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
+        <div
+          className="flex items-center gap-0.5"
+          onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragOver(true); }}
+          onDragLeave={() => { if (--dragCounter.current === 0) setIsDragOver(false); }}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+          onDrop={(e) => {
+            e.preventDefault();
+            dragCounter.current = 0;
+            setIsDragOver(false);
+            const articleId = e.dataTransfer.getData("text/plain");
+            if (articleId) onDropArticle(articleId, node.id);
+          }}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
-          />
-        </svg>
-
-        <span className="flex-1 truncate">{folder.name}</span>
-
-        {/* Article count pill */}
-        {articleCount > 0 && (
-          <span
+          <button
+            onClick={() => hasChildren && onToggleExpand(node.id)}
             className={cn(
-              "text-xs px-1.5 py-0.5 rounded-full",
-              isSelected
-                ? "bg-brand-100 text-brand-700"
-                : "bg-gray-100 text-gray-500"
+              "w-4 h-4 shrink-0 flex items-center justify-center rounded transition-colors",
+              hasChildren
+                ? "text-gray-400 hover:text-gray-600 hover:bg-black/5 cursor-pointer"
+                : "pointer-events-none text-transparent"
             )}
           >
-            {articleCount}
-          </span>
-        )}
-      </button>
-
-      {/* Context menu trigger */}
-      {isOnline && (
-        <div ref={menuRef} className="absolute right-1 top-1/2 -translate-y-1/2">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
-          >
-            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-              <circle cx="10" cy="4" r="1.5" />
-              <circle cx="10" cy="10" r="1.5" />
-              <circle cx="10" cy="16" r="1.5" />
+            <svg
+              className={cn("w-2.5 h-2.5 transition-transform", isExpanded && "rotate-90")}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
-          </Button>
+          </button>
 
-          {menuOpen && (
-            <div className="absolute right-0 top-7 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start rounded-none text-gray-700"
-                onClick={() => { setMenuOpen(false); onRename(); }}
-              >
-                Renombrar
-              </Button>
-              <Button
-                variant="ghost-destructive"
-                size="sm"
-                className="w-full justify-start rounded-none"
-                onClick={() => { setMenuOpen(false); onDelete(); }}
-              >
-                Eliminar
-              </Button>
-            </div>
-          )}
+          <button
+            onClick={() => onSelectFolder(node.id)}
+            className={cn(
+              "flex-1 flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all text-left cursor-pointer min-w-0 pr-6",
+              isSelected
+                ? "bg-brand-50 text-gray-900 font-medium"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+              isDragOver && isDraggingActive && "ring-2 ring-brand-400 bg-brand-50 text-gray-900"
+            )}
+          >
+            <svg
+              className={cn("w-4 h-4 shrink-0 transition-colors", isSelected ? "text-brand-500" : "text-gray-400")}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+              />
+            </svg>
+            <span className="flex-1 truncate">{node.name}</span>
+            {articleCount > 0 && (
+              <span className={cn("text-xs px-1.5 py-0.5 rounded-full shrink-0", isSelected ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500")}>
+                {articleCount}
+              </span>
+            )}
+          </button>
         </div>
+
+        {isOnline && (
+          <div ref={menuRef} className="absolute right-1 top-1/2 -translate-y-1/2">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity rounded-md"
+            >
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="4" r="1.5" />
+                <circle cx="10" cy="10" r="1.5" />
+                <circle cx="10" cy="16" r="1.5" />
+              </svg>
+            </Button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-7 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start rounded-none text-gray-700"
+                  onClick={() => { setMenuOpen(false); onRename(node); }}
+                >
+                  Renombrar
+                </Button>
+                <Button
+                  variant="ghost-destructive"
+                  size="sm"
+                  className="w-full justify-start rounded-none"
+                  onClick={() => { setMenuOpen(false); onDelete(node.id); }}
+                >
+                  Eliminar
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isExpanded && node.children.map((child) => (
+        <FolderTreeNode
+          key={child.id}
+          node={child}
+          depth={depth + 1}
+          selectedFolderId={selectedFolderId}
+          expandedFolders={expandedFolders}
+          articleCountByFolder={articleCountByFolder}
+          isOnline={isOnline}
+          isDraggingActive={isDraggingActive}
+          onSelectFolder={onSelectFolder}
+          onToggleExpand={onToggleExpand}
+          onRename={onRename}
+          onDelete={onDelete}
+          onDropArticle={onDropArticle}
+        />
+      ))}
+    </>
+  );
+}
+
+// ─── Folder Row (notes list) ──────────────────────────────────────────────────
+
+function FolderRow({
+  folder,
+  articleCount,
+  isDraggingActive,
+  onClick,
+  onDropArticle,
+}: {
+  folder: KBFolder;
+  articleCount: number;
+  isDraggingActive: boolean;
+  onClick: () => void;
+  onDropArticle: (articleId: string, folderId: string) => void;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg",
+        isDragOver && isDraggingActive && "ring-2 ring-inset ring-brand-400 bg-brand-50"
       )}
+      onClick={onClick}
+      onDragEnter={(e) => { e.preventDefault(); dragCounter.current++; setIsDragOver(true); }}
+      onDragLeave={() => { if (--dragCounter.current === 0) setIsDragOver(false); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragCounter.current = 0;
+        setIsDragOver(false);
+        const articleId = e.dataTransfer.getData("text/plain");
+        if (articleId) onDropArticle(articleId, folder.id);
+      }}
+    >
+      <div className="shrink-0 w-7 h-7 rounded-md bg-brand-50 flex items-center justify-center">
+        <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate">{folder.name}</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {articleCount} nota{articleCount !== 1 ? "s" : ""}
+        </p>
+      </div>
+      <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
     </div>
   );
 }
@@ -295,13 +432,21 @@ function ArticleRow({
   article,
   isSelected,
   isOnline,
+  isBeingDragged,
   onClick,
+  onDragStart,
+  onDragEnd,
+  onRename,
   onDelete,
 }: {
   article: KBArticle;
   isSelected: boolean;
   isOnline: boolean;
+  isBeingDragged: boolean;
   onClick: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onRename: () => void;
   onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -326,11 +471,20 @@ function ArticleRow({
 
   return (
     <div
+      draggable={isOnline && !menuOpen}
       className={cn(
-        "relative group flex items-start gap-3 px-4 py-3.5 cursor-pointer border-b border-gray-100 last:border-0 transition-colors",
-        isSelected ? "bg-brand-50" : "hover:bg-gray-50"
+        "relative group flex items-start gap-3 px-4 py-3.5 cursor-pointer border-b border-gray-100 last:border-0 transition-colors first:rounded-t-lg last:rounded-b-lg",
+        isSelected ? "bg-brand-50" : "hover:bg-gray-50",
+        menuOpen && "z-20",
+        isBeingDragged && "opacity-40"
       )}
       onClick={onClick}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", article.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
     >
       {/* Doc icon */}
       <div
@@ -393,7 +547,15 @@ function ArticleRow({
           </Button>
 
           {menuOpen && (
-            <div className="absolute right-3 top-10 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+            <div className="absolute right-3 top-10 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start rounded-none text-gray-700"
+                onClick={() => { setMenuOpen(false); onRename(); }}
+              >
+                Renombrar
+              </Button>
               <Button
                 variant="ghost-destructive"
                 size="sm"
@@ -424,9 +586,19 @@ export function KBBrowser() {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [hasPending, setHasPending] = useState(false);
 
+  // Folder tree
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const folderTree = useMemo(() => buildFolderTree(folders), [folders]);
+
   // Dialogs
-  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderParentId, setNewFolderParentId] = useState<string | null | undefined>(undefined);
   const [renaming, setRenaming] = useState<KBFolder | null>(null);
+  const [renamingArticle, setRenamingArticle] = useState<KBArticle | null>(null);
+
+  // Drag & drop
+  const [draggingArticleId, setDraggingArticleId] = useState<string | null>(null);
+  const [isDragOverUnfiled, setIsDragOverUnfiled] = useState(false);
+  const unfiledDragCounter = useRef(0);
 
   // ── Online/offline detection ──────────────────────────────────────────────
 
@@ -523,9 +695,10 @@ export function KBBrowser() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const selectedFolderArticles = selectedFolderId
+  const selectedFolderArticles = (selectedFolderId
     ? articles.filter((a) => a.folder_id === selectedFolderId)
-    : articles.filter((a) => a.folder_id === null);
+    : articles.filter((a) => a.folder_id === null)
+  ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
   const articleCountByFolder = folders.reduce<Record<string, number>>(
     (acc, f) => {
@@ -535,16 +708,23 @@ export function KBBrowser() {
     {}
   );
 
+  const childFolders = selectedFolderId
+    ? folders
+        .filter((f) => f.parent_id === selectedFolderId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
   const unfiled = articles.filter((a) => a.folder_id === null);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleNewFolder = async (name: string) => {
-    setShowNewFolder(false);
+    const parentId = newFolderParentId ?? null;
+    setNewFolderParentId(undefined);
     if (!isOnline) return;
     try {
-      const folder = await createFolder(name);
-      setFolders((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name)));
+      const folder = await createFolder(name, parentId);
+      setFolders((prev) => [...prev, folder]);
       await addCachedFolder(folder);
     } catch (e) {
       console.error(e);
@@ -567,20 +747,45 @@ export function KBBrowser() {
     }
   };
 
+  const handleRenameArticle = async (title: string) => {
+    if (!renamingArticle || !isOnline) return;
+    const id = renamingArticle.id;
+    const content = renamingArticle.content ?? "";
+    setRenamingArticle(null);
+    try {
+      const updated = await updateArticle(id, title, content);
+      setArticles((prev) =>
+        prev.map((a) => (a.id === id ? updated : a))
+      );
+      await updateCachedArticle(updated);
+      if (selectedArticle?.id === id) setSelectedArticle(updated);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleDeleteFolder = async (id: string) => {
     if (!isOnline) return;
+    const toDelete = new Set<string>();
+    const collect = (fid: string) => {
+      toDelete.add(fid);
+      folders.filter((f) => f.parent_id === fid).forEach((f) => collect(f.id));
+    };
+    collect(id);
     const confirmed = window.confirm(
-      "¿Eliminar esta carpeta? Los artículos dentro quedarán sin carpeta."
+      toDelete.size > 1
+        ? "¿Eliminar esta carpeta y todas sus subcarpetas? Los artículos dentro quedarán sin carpeta."
+        : "¿Eliminar esta carpeta? Los artículos dentro quedarán sin carpeta."
     );
     if (!confirmed) return;
     try {
       await deleteFolder(id);
-      setFolders((prev) => prev.filter((f) => f.id !== id));
+      setFolders((prev) => prev.filter((f) => !toDelete.has(f.id)));
       setArticles((prev) =>
-        prev.map((a) => (a.folder_id === id ? { ...a, folder_id: null } : a))
+        prev.map((a) => (toDelete.has(a.folder_id ?? "") ? { ...a, folder_id: null } : a))
       );
-      if (selectedFolderId === id) setSelectedFolderId(null);
-      await removeCachedFolder(id);
+      if (selectedFolderId && toDelete.has(selectedFolderId)) setSelectedFolderId(null);
+      for (const fid of toDelete) await removeCachedFolder(fid);
     } catch (e) {
       console.error(e);
     }
@@ -656,6 +861,22 @@ export function KBBrowser() {
     }
   };
 
+  const handleDropOnFolder = async (articleId: string, folderId: string | null) => {
+    const article = articles.find((a) => a.id === articleId);
+    if (!article || article.folder_id === folderId) return;
+    setArticles((prev) =>
+      prev.map((a) => (a.id === articleId ? { ...a, folder_id: folderId } : a))
+    );
+    try {
+      await moveArticle(articleId, folderId);
+    } catch (e) {
+      console.error(e);
+      setArticles((prev) =>
+        prev.map((a) => (a.id === articleId ? { ...a, folder_id: article.folder_id } : a))
+      );
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (isLoading && folders.length === 0 && articles.length === 0) {
@@ -702,18 +923,28 @@ export function KBBrowser() {
 
       <div className="flex-1 overflow-hidden flex flex-col">
 
-      {showNewFolder && (
+      {newFolderParentId !== undefined && (
         <NewFolderDialog
           onConfirm={handleNewFolder}
-          onCancel={() => setShowNewFolder(false)}
+          onCancel={() => setNewFolderParentId(undefined)}
         />
       )}
 
       {renaming && (
         <RenameDialog
           current={renaming.name}
+          title="Renombrar carpeta"
           onConfirm={handleRenameFolder}
           onCancel={() => setRenaming(null)}
+        />
+      )}
+
+      {renamingArticle && (
+        <RenameDialog
+          current={renamingArticle.title}
+          title="Renombrar nota"
+          onConfirm={handleRenameArticle}
+          onCancel={() => setRenamingArticle(null)}
         />
       )}
 
@@ -732,7 +963,7 @@ export function KBBrowser() {
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={() => isOnline && setShowNewFolder(true)}
+              onClick={() => isOnline && setNewFolderParentId(null)}
               disabled={!isOnline}
               title="Nueva carpeta"
               className="hover:text-brand-500 hover:bg-brand-50 rounded-md"
@@ -748,11 +979,22 @@ export function KBBrowser() {
             {/* "Sin carpeta" entry */}
             <button
               onClick={() => { setSelectedFolderId(null); setMobilePanel("articles"); }}
+              onDragEnter={(e) => { e.preventDefault(); unfiledDragCounter.current++; setIsDragOverUnfiled(true); }}
+              onDragLeave={() => { if (--unfiledDragCounter.current === 0) setIsDragOverUnfiled(false); }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                unfiledDragCounter.current = 0;
+                setIsDragOverUnfiled(false);
+                const articleId = e.dataTransfer.getData("text/plain");
+                if (articleId) handleDropOnFolder(articleId, null);
+              }}
               className={cn(
                 "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left cursor-pointer",
                 selectedFolderId === null
                   ? "bg-brand-50 text-gray-900 font-medium"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700",
+                isDragOverUnfiled && draggingArticleId && "ring-2 ring-brand-400 bg-brand-50 text-gray-900"
               )}
             >
               <svg
@@ -786,16 +1028,27 @@ export function KBBrowser() {
               )}
             </button>
 
-            {folders.map((folder) => (
-              <FolderItem
-                key={folder.id}
-                folder={folder}
-                isSelected={selectedFolderId === folder.id}
-                articleCount={articleCountByFolder[folder.id] ?? 0}
+            {folderTree.map((node) => (
+              <FolderTreeNode
+                key={node.id}
+                node={node}
+                depth={0}
+                selectedFolderId={selectedFolderId}
+                expandedFolders={expandedFolders}
+                articleCountByFolder={articleCountByFolder}
                 isOnline={isOnline}
-                onClick={() => { setSelectedFolderId(folder.id); setMobilePanel("articles"); }}
-                onRename={() => setRenaming(folder)}
-                onDelete={() => handleDeleteFolder(folder.id)}
+                isDraggingActive={draggingArticleId !== null}
+                onSelectFolder={(fid) => { setSelectedFolderId(fid); setView("list"); setMobilePanel("articles"); }}
+                onToggleExpand={(fid) =>
+                  setExpandedFolders((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(fid)) next.delete(fid); else next.add(fid);
+                    return next;
+                  })
+                }
+                onRename={(folder) => setRenaming(folder)}
+                onDelete={handleDeleteFolder}
+                onDropArticle={handleDropOnFolder}
               />
             ))}
 
@@ -845,17 +1098,25 @@ export function KBBrowser() {
                   />
                 </div>
 
-                <Button size="sm" onClick={handleNewArticle} disabled={!isOnline}>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  Nueva nota
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => isOnline && setNewFolderParentId(selectedFolderId)} disabled={!isOnline}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                    </svg>
+                    Agregar carpeta
+                  </Button>
+                  <Button size="sm" onClick={handleNewArticle} disabled={!isOnline}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Nueva nota
+                  </Button>
+                </div>
               </div>
 
               {/* Article list */}
               <div className="flex-1 overflow-y-auto">
-                {selectedFolderArticles.length === 0 ? (
+                {childFolders.length === 0 && selectedFolderArticles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full py-16 text-center px-8">
                     <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
                       <svg
@@ -887,21 +1148,43 @@ export function KBBrowser() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-white rounded-lg m-4 border border-gray-200 overflow-hidden">
-                    {selectedFolderArticles.map((article) => (
-                      <ArticleRow
-                        key={article.id}
-                        article={article}
-                        isSelected={selectedArticle?.id === article.id}
-                        isOnline={isOnline}
-                        onClick={() => {
-                          setSelectedArticle(article);
-                          setView("editor");
-                          setMobilePanel("editor");
-                        }}
-                        onDelete={() => handleDeleteArticle(article.id)}
-                      />
-                    ))}
+                  <div className="p-4 space-y-3">
+                    {childFolders.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        {childFolders.map((folder) => (
+                          <FolderRow
+                            key={folder.id}
+                            folder={folder}
+                            articleCount={articleCountByFolder[folder.id] ?? 0}
+                            isDraggingActive={draggingArticleId !== null}
+                            onClick={() => { setSelectedFolderId(folder.id); setMobilePanel("articles"); }}
+                            onDropArticle={handleDropOnFolder}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {selectedFolderArticles.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        {selectedFolderArticles.map((article) => (
+                          <ArticleRow
+                            key={article.id}
+                            article={article}
+                            isSelected={selectedArticle?.id === article.id}
+                            isOnline={isOnline}
+                            isBeingDragged={draggingArticleId === article.id}
+                            onClick={() => {
+                              setSelectedArticle(article);
+                              setView("editor");
+                              setMobilePanel("editor");
+                            }}
+                            onDragStart={() => setDraggingArticleId(article.id)}
+                            onDragEnd={() => setDraggingArticleId(null)}
+                            onRename={() => setRenamingArticle(article)}
+                            onDelete={() => handleDeleteArticle(article.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

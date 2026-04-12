@@ -12,6 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { Plus } from "lucide-react";
+import {
+  DELIVERABLE_STATUS_LABEL,
+  DELIVERABLE_STATUS_COLOR,
+  DELIVERABLE_TYPE_LABEL,
+} from "@/lib/deliverables/types";
+import type { DeliverableStatus, DeliverableType } from "@/lib/deliverables/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,12 +46,42 @@ export type TaskItem = {
   status: StatusInfo;
   priority: StatusInfo;
   assigned: { id: string; full_name: string | null } | null;
-  project: { id: string; name: string } | null;
+};
+
+export type MaintenancePlan = {
+  id: string;
+  type: "spt" | "recurring";
+  start_date: string | null;
+  end_date: string | null;
+  status: StatusInfo | null;
+  months: {
+    id: string;
+    month_number: number;
+    year: number;
+    month: string;
+    status: string;
+  }[];
+};
+
+export type DeliverableListItem = {
+  id: string;
+  type: DeliverableType;
+  title: string;
+  description: string | null;
+  status: DeliverableStatus;
+  published_at: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  fields: { id: string }[];
+  options: { id: string }[];
 };
 
 type Props = {
-  projects: ProjectItem[];
+  clientId: string;
+  project: ProjectItem | null;
   tasks: TaskItem[];
+  maintenancePlans: MaintenancePlan[];
+  deliverables: DeliverableListItem[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -65,6 +102,21 @@ function statusBadgeClass(color: string | null) {
     case "gray":
     default:
       return "bg-gray-100 text-gray-600 border-gray-200";
+  }
+}
+
+function monthStatusColor(status: string) {
+  switch (status) {
+    case "done":
+    case "complete":
+    case "completed":
+      return "bg-green-400";
+    case "in_progress":
+    case "active":
+      return "bg-brand-400";
+    case "pending":
+    default:
+      return "bg-gray-200";
   }
 }
 
@@ -92,7 +144,12 @@ function isOverdue(due: string | null) {
   return new Date(due) < new Date();
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+const planTypeLabel: Record<MaintenancePlan["type"], string> = {
+  spt: "SPT",
+  recurring: "Recurrente",
+};
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyCard({ message, sub }: { message: string; sub: string }) {
   return (
@@ -120,509 +177,383 @@ function EmptyCard({ message, sub }: { message: string; sub: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ClientDetailTabs({ projects, tasks }: Props) {
-  // Derived stats
-  const activeProjects = projects.filter(
-    (p) => p.status.color !== "gray" && p.status.color !== "red"
-  );
+export function ClientDetailTabs({
+  clientId,
+  project,
+  tasks,
+  maintenancePlans,
+  deliverables,
+}: Props) {
   const openTasks = tasks.filter(
     (t) => t.status.color !== "gray" && t.status.color !== "green"
   );
-  const overdueTasks = tasks.filter((t) => isOverdue(t.due_date));
-  const nextDeadline = tasks
-    .filter((t) => t.due_date && !isOverdue(t.due_date))
-    .sort(
-      (a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime()
-    )[0];
 
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
+    <Tabs defaultValue={project ? "project" : "maintenance"} className="space-y-6">
       <TabsList className="h-9 bg-gray-100 p-1 rounded-lg">
-        <TabsTrigger value="overview" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
-          Resumen
-        </TabsTrigger>
-        <TabsTrigger value="projects" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
-          Proyectos
-          {projects.length > 0 && (
-            <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 data-[state=active]:bg-brand-100 data-[state=active]:text-brand-700 rounded-full px-1.5 py-0.5">
-              {projects.length}
-            </span>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="tasks" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
-          Tareas
+        <TabsTrigger
+          value="project"
+          className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs"
+        >
+          Proyecto
           {tasks.length > 0 && (
             <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
               {tasks.length}
             </span>
           )}
         </TabsTrigger>
-        <TabsTrigger value="payments" className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs">
-          Pagos
+        <TabsTrigger
+          value="maintenance"
+          className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs"
+        >
+          Mantenimiento
+          {maintenancePlans.length > 0 && (
+            <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
+              {maintenancePlans.length}
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger
+          value="deliverables"
+          className="text-sm px-4 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-xs"
+        >
+          Entregables
+          {deliverables.length > 0 && (
+            <span className="ml-1.5 text-xs bg-gray-200 text-gray-600 rounded-full px-1.5 py-0.5">
+              {deliverables.length}
+            </span>
+          )}
         </TabsTrigger>
       </TabsList>
 
-      {/* ── Overview ── */}
-      <TabsContent value="overview" className="mt-0 space-y-6">
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard
-            label="Proyectos activos"
-            value={activeProjects.length}
-            color="brand"
-          />
-          <StatCard
-            label="Tareas abiertas"
-            value={openTasks.length}
-            color={openTasks.length > 0 ? "amber" : "default"}
-          />
-          <StatCard
-            label="Tareas vencidas"
-            value={overdueTasks.length}
-            color={overdueTasks.length > 0 ? "red" : "default"}
-          />
-          <StatCard
-            label="Próx. vencimiento"
-            value={nextDeadline ? formatDate(nextDeadline.due_date) : "—"}
-            color="default"
-            small
-          />
-        </div>
-
-        {/* Recent tasks */}
-        {openTasks.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Tareas abiertas recientes
-            </h3>
-            <div className="rounded-lg border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
-              {openTasks.slice(0, 5).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-4 px-4 py-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 truncate">
-                      {task.title}
-                    </p>
-                    {task.project && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {task.project.name}
-                      </p>
-                    )}
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs shrink-0 ${statusBadgeClass(
-                      task.status.color
-                    )}`}
+      {/* ── Proyecto ── */}
+      <TabsContent value="project" className="mt-0 space-y-4">
+        {!project ? (
+          <div className="rounded-lg border border-gray-200 bg-white">
+            <EmptyCard
+              message="Sin proyecto"
+              sub="Este cliente todavía no tiene un proyecto asignado."
+            />
+          </div>
+        ) : (
+          <>
+            {/* Project card */}
+            <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="min-w-0">
+                  <Link
+                    href={`/dashboard/projects/${project.id}`}
+                    className="font-medium text-gray-900 hover:text-brand-600 hover:underline transition-colors"
                   >
-                    {task.status.label}
-                  </Badge>
-                  {task.due_date && (
-                    <span
-                      className={`text-xs shrink-0 ${
-                        isOverdue(task.due_date)
-                          ? "text-red-500 font-medium"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {formatDate(task.due_date)}
-                    </span>
+                    {project.name}
+                  </Link>
+                  {project.description && (
+                    <p className="text-sm text-gray-500 mt-1 leading-snug">
+                      {project.description}
+                    </p>
                   )}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Pending payments placeholder */}
-        <div>
-          <h3 className="text-base  text-gray-700 mb-3">
-            Pagos pendientes
-          </h3>
-          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
-            <div className="flex flex-col items-center justify-center py-10 text-center px-6">
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
+                <Badge
+                  variant="outline"
+                  className={`text-xs shrink-0 ${statusBadgeClass(project.status.color)}`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
-                  />
-                </svg>
+                  {project.status.label}
+                </Badge>
               </div>
-              <p className="text-xs font-medium text-gray-500 mb-1">
-                Módulo de pagos — Próximamente
-              </p>
-              <p className="text-xs text-gray-400">
-                Aquí aparecerán los pagos y facturas del cliente.
-              </p>
-            </div>
-          </div>
-        </div>
-      </TabsContent>
 
-      {/* ── Projects ── */}
-      <TabsContent value="projects" className="mt-0">
-        {projects.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white">
-            <EmptyCard
-              message="Sin proyectos"
-              sub="Este cliente todavía no tiene proyectos asignados."
-            />
-          </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-2">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="rounded-lg border border-gray-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/dashboard/projects/${project.id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-brand-600 transition-colors hover:underline"
-                      >
-                        {project.name}
-                      </Link>
-                      {project.description && (
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
-                          {project.description}
-                        </p>
-                      )}
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 ${statusBadgeClass(project.status.color)}`}
-                    >
-                      {project.status.label}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
-                    <span>Inicio: {formatDate(project.start_date)}</span>
-                    <span>Entrega: {formatDate(project.end_date)}</span>
-                  </div>
-                </div>
-              ))}
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-gray-500">
+                <span>
+                  <span className="text-gray-400">Inicio:</span>{" "}
+                  {formatDate(project.start_date)}
+                </span>
+                <span>
+                  <span className="text-gray-400">Entrega:</span>{" "}
+                  {formatDate(project.end_date)}
+                </span>
+                {openTasks.length > 0 && (
+                  <span className="text-amber-600 font-medium">
+                    {openTasks.length} tarea{openTasks.length !== 1 ? "s" : ""}{" "}
+                    abierta{openTasks.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Desktop table */}
-            <div className="hidden md:block rounded-lg border border-gray-200 bg-white overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-5">
-                      Proyecto
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Inicio
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pr-5">
-                      Entrega
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projects.map((project) => (
-                    <TableRow
-                      key={project.id}
-                      className="group hover:bg-brand-50/30 transition-colors"
-                    >
-                      <TableCell className="pl-5 py-3.5">
-                        <div>
-                          <Link
-                            href={`/dashboard/projects/${project.id}`}
-                            className="text-sm font-medium text-gray-900 group-hover:text-brand-600 transition-colors hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {project.name}
-                          </Link>
-                          {project.description && (
-                            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">
-                              {project.description}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3.5">
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${statusBadgeClass(project.status.color)}`}
-                        >
-                          {project.status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-3.5">
-                        <span className="text-xs text-gray-500">
-                          {formatDate(project.start_date)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-3.5 pr-5">
-                        <span className="text-xs text-gray-500">
-                          {formatDate(project.end_date)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
-      </TabsContent>
-
-      {/* ── Tasks ── */}
-      <TabsContent value="tasks" className="mt-0">
-        {tasks.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white">
-            <EmptyCard
-              message="Sin tareas"
-              sub="No hay tareas registradas para los proyectos de este cliente."
-            />
-          </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-2">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="rounded-lg border border-gray-200 bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-gray-800 leading-snug">
-                      {task.title}
-                    </p>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 ${statusBadgeClass(task.status.color)}`}
-                    >
-                      {task.status.label}
-                    </Badge>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center flex-wrap gap-2">
-                    {task.project && (
-                      <Link
-                        href={`/dashboard/projects/${task.project.id}`}
-                        className="text-xs text-gray-500 hover:text-brand-600 hover:underline transition-colors"
-                      >
-                        {task.project.name}
-                      </Link>
-                    )}
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${statusBadgeClass(task.priority.color)}`}
-                    >
-                      {task.priority.label}
-                    </Badge>
-                    {task.assigned && (
-                      <div className="flex items-center gap-1.5">
-                        <Avatar className="h-4 w-4 shrink-0">
-                          <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
-                            {initials(task.assigned.full_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-gray-500">{task.assigned.full_name}</span>
-                      </div>
-                    )}
-                    {task.due_date && (
-                      <span
-                        className={`text-xs ml-auto font-medium ${
-                          isOverdue(task.due_date) ? "text-red-500" : "text-gray-400"
-                        }`}
-                      >
-                        {formatDate(task.due_date)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden md:block rounded-lg border border-gray-200 bg-white overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-5">
-                      Tarea
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Proyecto
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Prioridad
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Responsable
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pr-5">
-                      Vence
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            {/* Tasks */}
+            {tasks.length === 0 ? (
+              <div className="rounded-lg border border-gray-200 bg-white">
+                <EmptyCard
+                  message="Sin tareas"
+                  sub="No hay tareas registradas para este proyecto."
+                />
+              </div>
+            ) : (
+              <>
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-2">
                   {tasks.map((task) => (
-                    <TableRow
+                    <div
                       key={task.id}
-                      className="hover:bg-gray-50/60 transition-colors"
+                      className="rounded-lg border border-gray-200 bg-white p-4"
                     >
-                      <TableCell className="pl-5 py-3.5">
-                        <span className="text-sm text-gray-800">{task.title}</span>
-                      </TableCell>
-                      <TableCell className="py-3.5">
-                        {task.project ? (
-                          <Link
-                            href={`/dashboard/projects/${task.project.id}`}
-                            className="text-xs text-gray-500 hover:text-brand-600 hover:underline transition-colors"
-                          >
-                            {task.project.name}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium text-gray-800 leading-snug">
+                          {task.title}
+                        </p>
                         <Badge
                           variant="outline"
-                          className={`text-xs ${statusBadgeClass(task.status.color)}`}
+                          className={`text-xs shrink-0 ${statusBadgeClass(task.status.color)}`}
                         >
                           {task.status.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="py-3.5">
+                      </div>
+
+                      <div className="mt-2.5 flex items-center flex-wrap gap-2">
                         <Badge
                           variant="outline"
                           className={`text-xs ${statusBadgeClass(task.priority.color)}`}
                         >
                           {task.priority.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="py-3.5">
-                        {task.assigned ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-5 w-5 shrink-0">
-                              <AvatarFallback className="text-[10px] bg-brand-100 text-brand-700">
+                        {task.assigned && (
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="h-4 w-4 shrink-0">
+                              <AvatarFallback className="text-[9px] bg-brand-100 text-brand-700">
                                 {initials(task.assigned.full_name)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-gray-600">
-                              {task.assigned.full_name ?? "—"}
+                            <span className="text-xs text-gray-500">
+                              {task.assigned.full_name}
                             </span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
                         )}
-                      </TableCell>
-                      <TableCell className="py-3.5 pr-5">
-                        <span
-                          className={`text-xs ${
-                            isOverdue(task.due_date)
-                              ? "text-red-500 font-medium"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {formatDate(task.due_date)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
+                        {task.due_date && (
+                          <span
+                            className={`text-xs ml-auto font-medium ${
+                              isOverdue(task.due_date)
+                                ? "text-red-500"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            {formatDate(task.due_date)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block rounded-lg border border-gray-200 bg-white overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50/80 hover:bg-gray-50/80">
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-5">
+                          Tarea
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Estado
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Prioridad
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Responsable
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider pr-5">
+                          Vence
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow
+                          key={task.id}
+                          className="hover:bg-gray-50/60 transition-colors"
+                        >
+                          <TableCell className="pl-5 py-3.5">
+                            <span className="text-sm text-gray-800">
+                              {task.title}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3.5">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${statusBadgeClass(task.status.color)}`}
+                            >
+                              {task.status.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3.5">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${statusBadgeClass(task.priority.color)}`}
+                            >
+                              {task.priority.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3.5">
+                            {task.assigned ? (
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-5 w-5 shrink-0">
+                                  <AvatarFallback className="text-[10px] bg-brand-100 text-brand-700">
+                                    {initials(task.assigned.full_name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-gray-600">
+                                  {task.assigned.full_name ?? "—"}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3.5 pr-5">
+                            <span
+                              className={`text-xs ${
+                                isOverdue(task.due_date)
+                                  ? "text-red-500 font-medium"
+                                  : "text-gray-400"
+                              }`}
+                            >
+                              {formatDate(task.due_date)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </>
         )}
       </TabsContent>
 
-      {/* ── Payments ── */}
-      <TabsContent value="payments" className="mt-0">
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
-          <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
-                />
-              </svg>
-            </div>
-            <p className="text-sm font-semibold text-gray-500 mb-1">
-              Módulo de pagos — Próximamente
-            </p>
-            <p className="text-xs text-gray-400 max-w-sm">
-              Aquí podrás ver el historial de pagos, facturas pendientes y
-              registrar nuevos cobros para este cliente.
-            </p>
+      {/* ── Mantenimiento ── */}
+      <TabsContent value="maintenance" className="mt-0 space-y-3">
+        {maintenancePlans.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white">
+            <EmptyCard
+              message="Sin planes de mantenimiento"
+              sub="Este cliente todavía no tiene planes de mantenimiento registrados."
+            />
           </div>
+        ) : (
+          maintenancePlans.map((plan) => {
+            const doneCount = plan.months.filter((m) =>
+              ["done", "complete", "completed"].includes(m.status)
+            ).length;
+            const total = plan.months.length;
+
+            return (
+              <Link
+                key={plan.id}
+                href={`/dashboard/maintenance/${plan.id}`}
+                className="block rounded-xl border border-gray-200 bg-white p-5 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                      {planTypeLabel[plan.type]}
+                    </span>
+                    <span className="text-sm font-medium text-gray-800">
+                      {formatDate(plan.start_date)}
+                      {plan.end_date && ` → ${formatDate(plan.end_date)}`}
+                    </span>
+                  </div>
+                  {plan.status && (
+                    <Badge
+                      variant="outline"
+                      className={`text-xs shrink-0 ${statusBadgeClass(plan.status.color)}`}
+                    >
+                      {plan.status.label}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Month progress dots */}
+                {total > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-3">
+                    {plan.months.map((m) => (
+                      <div
+                        key={m.id}
+                        title={`${m.month} ${m.year} — ${m.status}`}
+                        className={`w-2.5 h-2.5 rounded-full ${monthStatusColor(m.status)}`}
+                      />
+                    ))}
+                    <span className="text-xs text-gray-400 ml-1">
+                      {doneCount}/{total} meses completados
+                    </span>
+                  </div>
+                )}
+              </Link>
+            );
+          })
+        )}
+      </TabsContent>
+      {/* ── Entregables ── */}
+      <TabsContent value="deliverables" className="mt-0 space-y-3">
+        <div className="flex items-center justify-end mb-1">
+          <Link
+            href={`/dashboard/clients/${clientId}/deliverables/new`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-md px-3 py-1.5 hover:border-gray-300 bg-white transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nuevo entregable
+          </Link>
         </div>
+
+        {deliverables.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 bg-white">
+            <EmptyCard
+              message="Sin entregables"
+              sub="Crea un formulario o página de decisión para compartir con el cliente."
+            />
+          </div>
+        ) : (
+          deliverables.map((d) => (
+            <Link
+              key={d.id}
+              href={`/dashboard/clients/${clientId}/deliverables/${d.id}`}
+              className="block rounded-xl border border-gray-200 bg-white p-5 hover:border-brand-200 hover:bg-brand-50/30 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                      {DELIVERABLE_TYPE_LABEL[d.type]}
+                    </span>
+                    <span
+                      className={`text-xs border rounded-full px-2 py-0.5 font-medium ${DELIVERABLE_STATUS_COLOR[d.status]}`}
+                    >
+                      {DELIVERABLE_STATUS_LABEL[d.status]}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-800">{d.title}</p>
+                  {d.description && (
+                    <p className="text-xs text-gray-400 mt-0.5 truncate max-w-sm">
+                      {d.description}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-xs text-gray-400">
+                    {d.type === "form"
+                      ? `${d.fields.length} campo${d.fields.length !== 1 ? "s" : ""}`
+                      : `${d.options.length} opcion${d.options.length !== 1 ? "es" : ""}`}
+                  </p>
+                  {d.submitted_at && (
+                    <p className="text-xs text-amber-600 font-medium mt-0.5">
+                      Respondido {formatDate(d.submitted_at)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
       </TabsContent>
     </Tabs>
-  );
-}
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  color = "default",
-  small = false,
-}: {
-  label: string;
-  value: string | number;
-  color?: "brand" | "amber" | "red" | "default";
-  small?: boolean;
-}) {
-  const valueClass = {
-    brand: "text-brand-600",
-    amber: "text-amber-600",
-    red: "text-red-500",
-    default: "text-gray-900",
-  }[color];
-
-  const bgClass = {
-    brand: "bg-brand-50 border-brand-100",
-    amber: "bg-amber-50 border-amber-100",
-    red: "bg-red-50 border-red-100",
-    default: "bg-white border-gray-200",
-  }[color];
-
-  return (
-    <div className={`rounded-lg border p-4 flex flex-col gap-2 ${bgClass}`}>
-      <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-        {label}
-      </p>
-      <p
-        className={`font-heading font-semibold ${
-          small ? "text-lg" : "text-3xl"
-        } ${valueClass}`}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

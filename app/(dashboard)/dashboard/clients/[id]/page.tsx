@@ -11,7 +11,10 @@ import {
   ClientDetailTabs,
   type ProjectItem,
   type TaskItem,
+  type MaintenancePlan,
+  type DeliverableListItem,
 } from "@/components/dashboard/clients/details/Tabs";
+import { getDeliverablesForClient } from "@/app/(dashboard)/dashboard/clients/[id]/deliverables/actions";
 import { Pencil } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ export default async function ClientDetailPage({
       : rawClient.created_by_profile ?? null,
   };
 
-  // Fetch projects
+  // Fetch single project for this client
   const { data: rawProjects } = await supabase
     .from("projects")
     .select(`
@@ -101,18 +104,22 @@ export default async function ClientDetailPage({
       status:catalog_status!status_id(id, label, color)
     `)
     .eq("client_id", id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(1);
 
-  const projects: ProjectItem[] = (rawProjects ?? []).map((p) => ({
-    ...p,
-    status: Array.isArray(p.status) ? p.status[0] : p.status,
-  }));
+  const rawProject = rawProjects?.[0] ?? null;
+  const project: ProjectItem | null = rawProject
+    ? {
+        ...rawProject,
+        status: Array.isArray(rawProject.status)
+          ? rawProject.status[0]
+          : rawProject.status,
+      }
+    : null;
 
-  // Fetch tasks (for all projects belonging to this client)
-  const projectIds = projects.map((p) => p.id);
+  // Fetch tasks for the project
   let tasks: TaskItem[] = [];
-
-  if (projectIds.length > 0) {
+  if (project) {
     const { data: rawTasks } = await supabase
       .from("tasks")
       .select(`
@@ -122,24 +129,53 @@ export default async function ClientDetailPage({
         created_at,
         status:catalog_status!status_id(id, label, color),
         priority:catalog_status!priority_id(id, label, color),
-        assigned:profiles!assigned_to(id, full_name),
-        project:projects!project_id(id, name)
+        assigned:profiles!assigned_to(id, full_name)
       `)
-      .in("project_id", projectIds)
+      .eq("project_id", project.id)
       .order("due_date", { ascending: true, nullsFirst: false });
 
     tasks = (rawTasks ?? []).map((t) => ({
-      ...t,
+      id: t.id,
+      title: t.title,
+      due_date: t.due_date,
+      created_at: t.created_at,
       status: Array.isArray(t.status) ? t.status[0] : t.status,
       priority: Array.isArray(t.priority) ? t.priority[0] : t.priority,
       assigned: Array.isArray(t.assigned)
         ? t.assigned[0] ?? null
         : t.assigned ?? null,
-      project: Array.isArray(t.project)
-        ? t.project[0] ?? null
-        : t.project ?? null,
     }));
   }
+
+  // Fetch maintenance plans for this client
+  const { data: rawPlans } = await supabase
+    .from("maintenance_plans")
+    .select(`
+      id,
+      type,
+      start_date,
+      end_date,
+      status:catalog_status!status_id(id, label, color),
+      months:maintenance_months(id, month_number, year, month, status)
+    `)
+    .eq("client_id", id)
+    .order("created_at", { ascending: false });
+
+  const deliverables: DeliverableListItem[] = (
+    (await getDeliverablesForClient(id)) as DeliverableListItem[]
+  ) ?? [];
+
+  const maintenancePlans: MaintenancePlan[] = (rawPlans ?? []).map((p) => ({
+    id: p.id,
+    type: p.type as "spt" | "recurring",
+    start_date: p.start_date,
+    end_date: p.end_date,
+    status: Array.isArray(p.status) ? (p.status[0] ?? null) : (p.status ?? null),
+    months: ((p.months ?? []) as MaintenancePlan["months"]).sort(
+      (a: MaintenancePlan["months"][number], b: MaintenancePlan["months"][number]) =>
+        a.month_number - b.month_number
+    ),
+  }));
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
@@ -151,7 +187,7 @@ export default async function ClientDetailPage({
   };
 
   return (
-    <div className="px-8 py-8 max-w-6xl mx-auto">
+    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-6xl mx-auto">
       <nav className="flex items-center gap-2 text-sm text-gray-400 mb-7 px-2">
         <Link
           href="/dashboard/clients"
@@ -171,7 +207,7 @@ export default async function ClientDetailPage({
         <span className="text-gray-600 font-medium">{client.name}</span>
       </nav>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-8 mb-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14 rounded-xl shrink-0">
@@ -180,7 +216,7 @@ export default async function ClientDetailPage({
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="font-heading text-2xl text-gray-900 ">
+              <h1 className="font-heading text-2xl text-gray-900">
                 {client.name}
               </h1>
               {client.company && (
@@ -189,25 +225,28 @@ export default async function ClientDetailPage({
             </div>
           </div>
 
-            <Badge
-              variant="outline"
-              className={`text-xs font-medium px-2.5 py-1 ${statusBadgeClass(
-                client.status?.color
-              )}`}
-            >
-              {client.status?.label ?? "Sin estado"}
-            </Badge>
+          <Badge
+            variant="outline"
+            className={`text-xs font-medium px-2.5 py-1 ${statusBadgeClass(
+              client.status?.color
+            )}`}
+          >
+            {client.status?.label ?? "Sin estado"}
+          </Badge>
         </div>
 
         <Separator className="my-5" />
 
-        {/* Contact info grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
           <InfoField
             label="Email"
             value={
               client.email ? (
-                <Button variant="link" asChild className="p-0 py-0 h-auto text-sm">
+                <Button
+                  variant="link"
+                  asChild
+                  className="p-0 py-0 h-auto text-sm"
+                >
                   <a href={`mailto:${client.email}`}>{client.email}</a>
                 </Button>
               ) : (
@@ -247,9 +286,8 @@ export default async function ClientDetailPage({
           <InfoField label="Registrado" value={formatDate(client.created_at)} />
         </div>
 
-
-        <div className="flex flex-col lg:flex-row justify-between lg:items-end w-full mt-12 gap-8">
-        {client.notes && (
+        <div className="flex flex-col lg:flex-row justify-between lg:items-end w-full mt-10 gap-8">
+          {client.notes && (
             <div className="flex-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                 Notas
@@ -258,18 +296,28 @@ export default async function ClientDetailPage({
                 {client.notes}
               </p>
             </div>
-        )}
-            <Button variant="outline" size="sm" className="text-sm border-gray-200" asChild>
-              <Link href={`/dashboard/clients/${id}/edit`} className="text-xs">
-                <Pencil />
-                Editar
-                </Link>
-            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-sm border-gray-200 shrink-0"
+            asChild
+          >
+            <Link href={`/dashboard/clients/${id}/edit`} className="text-xs">
+              <Pencil />
+              Editar
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {/* ── Tabs section ── */}
-      <ClientDetailTabs projects={projects} tasks={tasks} />
+      <ClientDetailTabs
+        clientId={id}
+        project={project}
+        tasks={tasks}
+        maintenancePlans={maintenancePlans}
+        deliverables={deliverables}
+      />
     </div>
   );
 }
