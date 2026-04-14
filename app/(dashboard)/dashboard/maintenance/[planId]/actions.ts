@@ -65,12 +65,17 @@ export async function cycleTaskStatus(
   if (!nextStatus) throw new Error("Estado siguiente no encontrado");
 
   const isDone = nextValue === "done";
+  const now = new Date();
+  const completedWeek = isDone
+    ? (now.getDate() <= 7 ? 1 : now.getDate() <= 14 ? 2 : now.getDate() <= 21 ? 3 : 4)
+    : undefined;
 
   const { error } = await supabase
     .from("maintenance_tasks")
     .update({
       status_id: nextStatus.id,
-      completed_at: isDone ? new Date().toISOString() : null,
+      completed_at: isDone ? now.toISOString() : null,
+      ...(completedWeek !== undefined && { week_number: completedWeek }),
     })
     .eq("id", taskId);
 
@@ -87,12 +92,17 @@ export async function setTaskStatus(
   const supabase = await createClient();
 
   const isDone = statusValue === "done";
+  const now = new Date();
+  const completedWeek = isDone
+    ? (now.getDate() <= 7 ? 1 : now.getDate() <= 14 ? 2 : now.getDate() <= 21 ? 3 : 4)
+    : undefined;
 
   const { error } = await supabase
     .from("maintenance_tasks")
     .update({
       status_id: statusId,
-      completed_at: isDone ? new Date().toISOString() : null,
+      completed_at: isDone ? now.toISOString() : null,
+      ...(completedWeek !== undefined && { week_number: completedWeek }),
     })
     .eq("id", taskId);
 
