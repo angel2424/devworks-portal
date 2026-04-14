@@ -13,7 +13,6 @@ import {
   EditorRoot,
   HighlightExtension,
   HorizontalRule,
-  Placeholder,
   StarterKit,
   TaskItem,
   TaskList,
@@ -26,6 +25,10 @@ import {
   type JSONContent,
   type SuggestionItem,
 } from "novel";
+import Table, { createTable } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import type { KBArticle } from "@/lib/kb-offline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,22 @@ function parseContent(raw: string | null | undefined): JSONContent | undefined {
     };
   }
   return undefined;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Inserts an empty paragraph after the current top-level block if it's the last block in the document. */
+function addTrailingParagraph(editor: EditorInstance) {
+  const { state } = editor;
+  const { $to } = state.selection;
+  try {
+    const topBlockEnd = $to.end(1); // end pos of the depth-1 ancestor (table, blockquote, etc.)
+    if (topBlockEnd + 1 >= state.doc.content.size) {
+      editor.chain().insertContentAt(topBlockEnd + 1, { type: "paragraph" }).run();
+    }
+  } catch {
+    // ignore if position is out of range
+  }
 }
 
 // ─── Extensions ───────────────────────────────────────────────────────────────
@@ -100,8 +119,10 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.008v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.008v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleBulletList().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleBulletList().run();
+      addTrailingParagraph(editor);
+    },
   },
   {
     title: "Lista numerada",
@@ -112,8 +133,10 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M8.242 5.992h12m-12 6.003H20.24m-12 5.999h12M4.117 7.495v-3.75H2.99m1.125 3.75H2.99m1.125 0H5.24m-1.92 2.577a1.125 1.125 0 113.356 1.052 1.125 1.125 0 01-1.357-.551l-.054-.1v0m4.024 3.033v-.99a.375.375 0 01.375-.375H15m0 0a.375.375 0 01.375.375v.99m-5.625 0h5.625" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+      addTrailingParagraph(editor);
+    },
   },
   {
     title: "Lista de tareas",
@@ -124,8 +147,10 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleTaskList().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleTaskList().run();
+      addTrailingParagraph(editor);
+    },
   },
   {
     title: "Cita",
@@ -136,8 +161,10 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleBlockquote().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+      addTrailingParagraph(editor);
+    },
   },
   {
     title: "Código",
@@ -148,8 +175,10 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).toggleCodeBlock().run();
+      addTrailingParagraph(editor);
+    },
   },
   {
     title: "Separador",
@@ -160,8 +189,28 @@ const suggestionItems: SuggestionItem[] = createSuggestionItems([
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
       </svg>
     ),
-    command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+      addTrailingParagraph(editor);
+    },
+  },
+  {
+    title: "Tabla",
+    description: "Tabla con filas y columnas",
+    searchTerms: ["tabla", "table", "grid", "columnas", "filas"],
+    icon: (
+      <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-17.25m17.25 0h-17.25M3.375 12h17.25" />
+      </svg>
+    ),
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      const tableNode = createTable(editor.schema, 3, 3, true);
+      const { tr } = editor.state;
+      tr.replaceSelectionWith(tableNode);
+      editor.view.dispatch(tr);
+      addTrailingParagraph(editor);
+    },
   },
 ]);
 
@@ -175,12 +224,10 @@ const extensions = [
   HighlightExtension,
   TaskList,
   TaskItem.configure({ nested: true }),
-  Placeholder.configure({
-    placeholder: ({ node }) => {
-      if (node.type.name === "heading") return "Encabezado...";
-      return "Escribe '/' para insertar un bloque, o empieza a escribir...";
-    },
-  }),
+  TableHeader,
+  TableCell,
+  TableRow,
+  Table.configure({ resizable: false }),
   HorizontalRule,
   Command.configure({
     suggestion: {
