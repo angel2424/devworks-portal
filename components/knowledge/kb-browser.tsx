@@ -689,6 +689,20 @@ export function KBBrowser() {
       }
 
       setIsLoading(false);
+
+      // Restore last open article
+      const savedId = localStorage.getItem("kb:lastArticleId");
+      if (savedId) {
+        setArticles((current) => {
+          const found = current.find((a) => a.id === savedId);
+          if (found) {
+            setSelectedArticle(found);
+            setView("editor");
+            setMobilePanel("editor");
+          }
+          return current;
+        });
+      }
     };
     init();
   }, [loadFromCache, loadFromNetwork]);
@@ -800,6 +814,7 @@ export function KBBrowser() {
       setSelectedArticle(article);
       setView("editor");
       setMobilePanel("editor");
+      localStorage.setItem("kb:lastArticleId", article.id);
     } catch (e) {
       console.error(e);
     }
@@ -817,6 +832,7 @@ export function KBBrowser() {
         setSelectedArticle(null);
         setView("list");
         setMobilePanel("articles");
+        localStorage.removeItem("kb:lastArticleId");
       }
     } catch (e) {
       console.error(e);
@@ -1176,6 +1192,7 @@ export function KBBrowser() {
                               setSelectedArticle(article);
                               setView("editor");
                               setMobilePanel("editor");
+                              localStorage.setItem("kb:lastArticleId", article.id);
                             }}
                             onDragStart={() => setDraggingArticleId(article.id)}
                             onDragEnd={() => setDraggingArticleId(null)}
@@ -1195,7 +1212,7 @@ export function KBBrowser() {
                 article={selectedArticle}
                 isOnline={isOnline}
                 hasPending={hasPending}
-                onBack={() => { setView("list"); setMobilePanel("articles"); }}
+                onBack={() => { setView("list"); setMobilePanel("articles"); localStorage.removeItem("kb:lastArticleId"); }}
                 onSave={handleSaveArticle}
               />
             )

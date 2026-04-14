@@ -29,9 +29,22 @@ import Table, { createTable } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import {
+  addRowAfter,
+  addColumnAfter,
+  deleteRow,
+  deleteColumn,
+  deleteTable,
+} from "prosemirror-tables";
 import type { KBArticle } from "@/lib/kb-offline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -382,6 +395,146 @@ function HighlightItem() {
 
 // ─── Save Indicator ───────────────────────────────────────────────────────────
 
+// ─── PDF print styles (embedded in the iframe document) ──────────────────────
+
+const PDF_STYLES = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #111827;
+    padding: 48px 56px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  h1.article-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    line-height: 1.25;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+  }
+  h1 { font-size: 1.875rem; font-weight: 700; margin: 1.5rem 0 0.75rem; }
+  h2 { font-size: 1.375rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+  h3 { font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.4rem; }
+  p { margin: 0.625em 0; }
+  ul, ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+  ul { list-style: disc; }
+  ol { list-style: decimal; }
+  li { margin: 0.25rem 0; }
+  blockquote {
+    border-left: 3px solid #f59e0b;
+    padding-left: 1rem;
+    color: #6b7280;
+    margin: 1rem 0;
+    font-style: italic;
+  }
+  code {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.8125rem;
+    background: #f3f4f6;
+    border-radius: 3px;
+    padding: 0.1em 0.3em;
+  }
+  pre {
+    background: #1f2937;
+    color: #f9fafb;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+  mark { background: #fef3c7; color: #92400e; padding: 0.05em 0.2em; border-radius: 2px; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9375rem; }
+  th, td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
+  th { background: #f9fafb; font-weight: 600; }
+  ul[data-type='taskList'] { list-style: none; padding-left: 0.25rem; }
+  ul[data-type='taskList'] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+  ul[data-type='taskList'] li label { display: flex; align-items: center; gap: 0.375rem; margin-top: 0.125rem; }
+  ul[data-type='taskList'] li input[type='checkbox'] { width: 1rem; height: 1rem; }
+  ul[data-type='taskList'] li[data-checked='true'] > div { text-decoration: line-through; color: #9ca3af; }
+  @media print {
+    body { padding: 0; }
+    @page { margin: 2cm; }
+  }
+`;
+
+// ─── Article Preview Dialog ───────────────────────────────────────────────────
+
+function ArticlePreviewDialog({
+  open,
+  onClose,
+  title,
+  html,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  html: string;
+}) {
+  const handleDownload = () => {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8" />
+      <title>${title.replace(/</g, "&lt;")}</title>
+      <style>${PDF_STYLES}</style>
+    </head><body>
+      <h1 class="article-title">${title.replace(/</g, "&lt;")}</h1>
+      ${html}
+    </body></html>`);
+    doc.close();
+
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+          <DialogTitle className="text-base font-semibold text-gray-900 truncate pr-4">
+            {title}
+          </DialogTitle>
+          <Button size="sm" onClick={handleDownload} className="shrink-0 gap-1.5">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Descargar PDF
+          </Button>
+        </DialogHeader>
+
+        {/* Preview */}
+        <div className="flex-1 overflow-y-auto px-12 py-8 scrollbar-thin">
+          <h1
+            className="text-3xl font-bold text-gray-900 mb-8 pb-6 border-b border-gray-200"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {title}
+          </h1>
+          <div
+            className="ProseMirror prose-preview"
+            // Content comes from our own editor, not external input
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Save Indicator ───────────────────────────────────────────────────────────
+
 function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
 
@@ -440,10 +593,13 @@ export function ArticleEditor({
 }: ArticleEditorProps) {
   const [title, setTitle] = useState(article.title);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [isInTable, setIsInTable] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Refs hold latest values so the debounced callback always sees fresh data
   const titleRef = useRef(article.title);
   const contentRef = useRef<string>(article.content ?? "");
+  const editorRef = useRef<EditorInstance | null>(null);
 
   // Reset when switching articles
   useEffect(() => {
@@ -483,6 +639,20 @@ export function ArticleEditor({
     [triggerSave]
   );
 
+  const handleSelectionUpdate = useCallback(({ editor }: { editor: EditorInstance }) => {
+    editorRef.current = editor;
+    setIsInTable(editor.isActive("table"));
+  }, []);
+
+  // Table operations via prosemirror-tables
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tableOp = useCallback((fn: (state: any, dispatch: any) => void) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    fn(editor.state, editor.view.dispatch.bind(editor.view));
+    editor.view.focus();
+  }, []);
+
   const effectiveStatus: SaveStatus =
     hasPending && saveStatus === "idle" ? "pending" : saveStatus;
 
@@ -504,13 +674,62 @@ export function ArticleEditor({
           Volver
         </Button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <SaveIndicator status={effectiveStatus} />
           <span className="text-xs text-gray-400 hidden sm:block">
             Editado {updatedAt}
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-gray-600"
+            onClick={() => setShowPreview(true)}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Descargar
+          </Button>
         </div>
       </div>
+
+      {/* Article preview / PDF dialog */}
+      <ArticlePreviewDialog
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={title}
+        html={editorRef.current?.getHTML() ?? ""}
+      />
+
+      {/* Table toolbar */}
+      {isInTable && (
+        <div className="flex items-center gap-1 px-4 py-1.5 border-b border-gray-100 bg-gray-50 shrink-0 flex-wrap">
+          <span className="text-xs text-gray-400 font-medium mr-1">Tabla</span>
+          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); tableOp(addRowAfter); }}
+            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
+          >+ Fila</button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteRow); }}
+            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
+          >− Fila</button>
+          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); tableOp(addColumnAfter); }}
+            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
+          >+ Columna</button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteColumn); }}
+            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
+          >− Columna</button>
+          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteTable); }}
+            className="px-2 py-0.5 text-xs rounded hover:bg-red-100 text-red-500 transition-colors"
+          >Eliminar tabla</button>
+        </div>
+      )}
 
       {/* Offline notice */}
       {!isOnline && (
@@ -556,7 +775,9 @@ export function ArticleEditor({
                 handleKeyDown: (_view, event) =>
                   handleCommandNavigation(event) ?? false,
               }}
+              onCreate={({ editor }) => { editorRef.current = editor; }}
               onUpdate={handleEditorUpdate}
+              onSelectionUpdate={handleSelectionUpdate}
             >
               {/* Slash command dropdown */}
               <EditorCommand className="z-50 h-auto max-h-72 w-72 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl shadow-gray-200/50 p-1 scrollbar-thin">
