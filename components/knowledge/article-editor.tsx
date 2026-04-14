@@ -753,7 +753,7 @@ export function ArticleEditor({
 
       {/* Editor area */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        <div className="max-w-3xl mx-auto px-8 py-10">
+        <div className="max-w-5xl mx-auto px-8 py-10">
           {/* Title */}
           <input
             type="text"
