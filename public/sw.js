@@ -4,8 +4,8 @@
 //   - Next.js static chunks → cache-first (never change)
 //   - Everything else → network with cache fallback
 
-const SHELL_CACHE = "devworks-shell-v1";
-const KB_CACHE = "devworks-kb-v1";
+const SHELL_CACHE = "devworks-shell-v2";
+const KB_CACHE = "devworks-kb-v2";
 
 // On install: take control immediately, no waiting
 self.addEventListener("install", () => {

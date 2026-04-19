@@ -45,6 +45,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -679,6 +686,29 @@ export function ArticleEditor({
           <span className="text-xs text-gray-400 hidden sm:block">
             Editado {updatedAt}
           </span>
+          {isInTable && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-gray-600">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-17.25M3.375 12h17.25" />
+                  </svg>
+                  Tabla
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={() => tableOp(addRowAfter)}>+ Fila</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => tableOp(deleteRow)}>− Fila</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => tableOp(addColumnAfter)}>+ Columna</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => tableOp(deleteColumn)}>− Columna</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={() => tableOp(deleteTable)}>
+                  Eliminar tabla
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -700,36 +730,6 @@ export function ArticleEditor({
         title={title}
         html={editorRef.current?.getHTML() ?? ""}
       />
-
-      {/* Table toolbar */}
-      {isInTable && (
-        <div className="flex items-center gap-1 px-4 py-1.5 border-b border-gray-100 bg-gray-50 shrink-0 flex-wrap">
-          <span className="text-xs text-gray-400 font-medium mr-1">Tabla</span>
-          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
-          <button
-            onMouseDown={(e) => { e.preventDefault(); tableOp(addRowAfter); }}
-            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
-          >+ Fila</button>
-          <button
-            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteRow); }}
-            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
-          >− Fila</button>
-          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
-          <button
-            onMouseDown={(e) => { e.preventDefault(); tableOp(addColumnAfter); }}
-            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
-          >+ Columna</button>
-          <button
-            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteColumn); }}
-            className="px-2 py-0.5 text-xs rounded hover:bg-gray-200 text-gray-600 transition-colors"
-          >− Columna</button>
-          <div className="w-px h-3.5 bg-gray-200 mx-0.5" />
-          <button
-            onMouseDown={(e) => { e.preventDefault(); tableOp(deleteTable); }}
-            className="px-2 py-0.5 text-xs rounded hover:bg-red-100 text-red-500 transition-colors"
-          >Eliminar tabla</button>
-        </div>
-      )}
 
       {/* Offline notice */}
       {!isOnline && (
