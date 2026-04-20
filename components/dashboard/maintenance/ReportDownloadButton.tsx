@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { getReportSignedUrl } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
-import { ReportPreviewDialog, type ReportTask, type ReportMetrics } from "./ReportPreviewDialog";
+import { type ReportTask, type ReportMetrics, MONTH_NAMES } from "@/lib/pdf/maintenance-report";
+import { ReportPreviewDialog } from "./ReportPreviewDialog";
 
 interface Props {
   month: number;
@@ -18,10 +19,6 @@ interface Props {
   prevMetrics: ReportMetrics;
 }
 
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
 
 function getGenerationDate(month: number, year: number): Date {
   const lastDay = new Date(year, month, 0);

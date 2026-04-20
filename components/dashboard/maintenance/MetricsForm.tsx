@@ -11,7 +11,7 @@ import {
   type PageSpeedResult,
   type GSCRow,
 } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
-import { PS_METRIC_LABELS, psMetricColor } from "./ReportPreviewDialog";
+import { PS_METRIC_LABELS, psMetricColor } from "@/lib/pdf/maintenance-report";
 import { Gauge, Loader2, Search } from "lucide-react";
 
 type MetricsData = {
