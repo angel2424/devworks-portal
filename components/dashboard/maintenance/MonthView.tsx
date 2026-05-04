@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { TaskRow, type Task, type TaskStatus } from "./TaskRow";
 import { AddTaskRow } from "./AddTaskRow";
@@ -8,6 +10,7 @@ import { MetricsForm } from "./MetricsForm";
 import { MetricsComparison } from "./MetricsComparison";
 import { ReportDownloadButton } from "./ReportDownloadButton";
 import { BarChart, ChevronRight } from "lucide-react";
+import { saveMetrics } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 import type { PageSpeedResult } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
 
 type Metrics = {
@@ -92,6 +95,12 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
   const skipped = month.tasks.filter((t) => t.status?.value === "skipped").length;
   const progressPct = total > 0 ? Math.round(((done + skipped) / total) * 100) : 0;
 
+  // Weeks with at least one non-skipped task
+  const hasVisibleTasks = Array.from({ length: 4 }, (_, i) => i + 1).some((w) => {
+    const wt = tasksByWeek.get(w) ?? [];
+    return wt.length > 0 && !wt.every((t) => t.status?.value === "skipped");
+  });
+
   const monthLabel = `${MONTH_NAMES[month.month - 1]} ${month.year}`;
 
   return (
@@ -159,6 +168,7 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
       )}
 
       {/* Weekly task groups */}
+      {hasVisibleTasks && (
       <div className="space-y-3 mt-12">
         {Array.from({ length: 4 }, (_, i) => i + 1).map((week) => {
           const tasks = tasksByWeek.get(week) ?? [];
@@ -167,6 +177,7 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
           const isWeek4 = week === 4;
 
           if (tasks.length === 0) return null;
+          if (tasks.every((t) => t.status?.value === "skipped")) return null;
 
           const STATUS_ORDER: Record<string, number> = { in_progress: 0, pending: 1, skipped: 2 };
           const activeTasks = tasks
@@ -270,6 +281,14 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
           );
         })}
       </div>
+      )}
+
+      {/* Observations */}
+      <ObservationsSection
+        monthId={month.id}
+        planId={planId}
+        initialNotes={month.metrics?.notes ?? null}
+      />
 
       {/* Report section */}
       <ReportDownloadButton
@@ -283,6 +302,96 @@ export function MonthView({ month, prevMonth, taskStatuses, planId, clientName }
         metrics={month.metrics}
         prevMetrics={prevMonth?.metrics ?? null}
       />
+    </div>
+  );
+}
+
+function ObservationsSection({
+  monthId,
+  planId,
+  initialNotes,
+}: {
+  monthId: string;
+  planId: string;
+  initialNotes: string | null;
+}) {
+  const [notes, setNotes] = useState(initialNotes ?? "");
+  const [mode, setMode] = useState<"edit" | "preview">(initialNotes ? "preview" : "edit");
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  function handleSave() {
+    setSaved(false);
+    startTransition(async () => {
+      await saveMetrics(monthId, planId, { notes: notes.trim() || null });
+      setSaved(true);
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-800">Observaciones y plan de acción</p>
+          <p className="text-xs text-gray-400 mt-0.5">Soporta formato Markdown</p>
+        </div>
+        <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 shrink-0">
+          <button
+            onClick={() => setMode("edit")}
+            className={cn(
+              "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+              mode === "edit" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => setMode("preview")}
+            className={cn(
+              "px-2.5 py-1 text-xs rounded-md font-medium transition-all",
+              mode === "preview" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            Vista previa
+          </button>
+        </div>
+      </div>
+
+      {mode === "edit" ? (
+        <textarea
+          value={notes}
+          onChange={(e) => { setNotes(e.target.value); setSaved(false); }}
+          rows={10}
+          placeholder={`## Observaciones del mes\n\nDescribe tendencias, hallazgos clave...\n\n## Plan de acción\n\n- [ ] Tarea 1\n- [ ] Tarea 2`}
+          className="w-full font-mono text-sm text-gray-700 placeholder:text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 resize-y transition-all"
+        />
+      ) : (
+        <div className="min-h-40 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          {notes.trim() ? (
+            <div className="md-preview">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Sin contenido aún.</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <span className={cn(
+          "text-xs transition-opacity duration-300",
+          saved ? "text-green-700 opacity-100" : "opacity-0"
+        )}>
+          Guardado correctamente.
+        </span>
+        <button
+          onClick={handleSave}
+          disabled={isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-medium disabled:opacity-50 transition-all"
+        >
+          {isPending ? "Guardando…" : "Guardar observaciones"}
+        </button>
+      </div>
     </div>
   );
 }

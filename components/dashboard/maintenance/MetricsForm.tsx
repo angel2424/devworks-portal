@@ -55,7 +55,6 @@ export function MetricsForm({ monthId, planId, month, year, current, prev, onSav
   const [ctr,         setCtr]         = useState(numOrEmpty(current?.avg_ctr));
   const [position,    setPosition]    = useState(numOrEmpty(current?.avg_position));
   const [sessions,    setSessions]    = useState(numOrEmpty(current?.total_sessions));
-  const [notes,       setNotes]       = useState(current?.notes ?? "");
 
   // ── PageSpeed state ──
   const [psUrl,      setPsUrl]      = useState(current?.pagespeed_url ?? "");
@@ -85,7 +84,6 @@ export function MetricsForm({ monthId, planId, month, year, current, prev, onSav
           avg_ctr:           ctr         ? parseFloat(ctr)        : null,
           avg_position:      position    ? parseFloat(position)   : null,
           total_sessions:    sessions    ? parseInt(sessions)     : null,
-          notes:             notes.trim() || null,
         });
         setSaved(true);
         onSaved?.();
@@ -147,15 +145,6 @@ export function MetricsForm({ monthId, planId, month, year, current, prev, onSav
           hint={prev?.avg_position != null ? `Anterior: ${prev.avg_position}` : undefined} placeholder="0.00" step="0.01" />
         <MetricField id="sessions" label="Sesiones totales" value={sessions} onChange={setSessions}
           hint={prev?.total_sessions != null ? `Anterior: ${prev.total_sessions.toLocaleString()}` : undefined} placeholder="0" />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="metrics-notes" className="text-xs font-medium text-gray-600">Observaciones</Label>
-        <textarea
-          id="metrics-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
-          placeholder="Tendencias observadas, acciones tomadas, próximos pasos…"
-          className="w-full text-sm text-gray-700 placeholder:text-gray-400 bg-white border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 resize-none transition-all"
-        />
       </div>
 
       {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}

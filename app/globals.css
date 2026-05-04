@@ -46,6 +46,29 @@ h4 {
   font-family: 'Cal Sans', sans-serif;
 }
 
+/* ── Markdown preview ────────────────────────────────────────────────────── */
+.md-preview { font-size: 0.875rem; line-height: 1.6; color: var(--color-gray-700); }
+.md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 { font-family: 'Cal Sans', sans-serif; color: var(--color-gray-900); margin: 1.25em 0 0.5em; }
+.md-preview h1 { font-size: 1.25rem; }
+.md-preview h2 { font-size: 1.1rem; }
+.md-preview h3, .md-preview h4 { font-size: 0.95rem; }
+.md-preview p { margin: 0.6em 0; }
+.md-preview ul, .md-preview ol { padding-left: 1.4em; margin: 0.6em 0; }
+.md-preview li { margin: 0.2em 0; }
+.md-preview ul { list-style-type: disc; }
+.md-preview ol { list-style-type: decimal; }
+.md-preview strong { font-weight: 600; color: var(--color-gray-900); }
+.md-preview em { font-style: italic; }
+.md-preview code { font-family: ui-monospace, monospace; font-size: 0.8rem; background: var(--color-gray-100); padding: 0.1em 0.35em; border-radius: 4px; }
+.md-preview pre { background: var(--color-gray-100); border-radius: 8px; padding: 0.8em 1em; overflow-x: auto; margin: 0.8em 0; }
+.md-preview pre code { background: transparent; padding: 0; }
+.md-preview blockquote { border-left: 3px solid var(--color-brand-300); margin: 0.8em 0; padding: 0.2em 0.75em; color: var(--color-gray-500); }
+.md-preview hr { border: none; border-top: 1px solid var(--color-gray-200); margin: 1em 0; }
+.md-preview a { color: var(--color-brand-500); text-decoration: underline; }
+.md-preview table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 0.8em 0; }
+.md-preview th { text-align: left; font-weight: 600; background: var(--color-gray-50); padding: 0.4em 0.75em; border: 1px solid var(--color-gray-200); }
+.md-preview td { padding: 0.4em 0.75em; border: 1px solid var(--color-gray-200); }
+
 @layer utilities {
   .ProseMirror {
     outline: none;

@@ -1,3 +1,4 @@
+import { marked } from "marked"
 import type {
   PageSpeedResult,
   GSCRow,
@@ -298,7 +299,7 @@ export function buildMaintenanceReportHTML(
 
   let tasksHtml = ""
   for (let w = 1; w <= 4; w++) {
-    const wt = tasksByWeek.get(w) ?? []
+    const wt = (tasksByWeek.get(w) ?? []).filter((t) => t.status?.value !== "skipped")
     if (!wt.length) continue
     tasksHtml += `
       <div style="margin-bottom:16px;page-break-inside:avoid">
@@ -549,8 +550,8 @@ export function buildMaintenanceReportHTML(
     ? `
     <div style="page-break-inside:avoid;margin-bottom:28px">
       <h2 style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Observaciones y próximos pasos</h2>
-      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px">
-        <p style="font-size:12px;color:#374151;line-height:1.65;white-space:pre-wrap;margin:0">${metrics.notes}</p>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px">
+        <div class="md" style="font-size:12px;color:#374151;line-height:1.7">${marked.parse(metrics.notes, { async: false })}</div>
       </div>
     </div>
   `
@@ -589,6 +590,22 @@ export function buildMaintenanceReportHTML(
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #111827; background: #fff; }
     @page { size: A4; margin: 18mm 14mm; }
     @media print { body { padding: 0; } }
+    .md h1,.md h2,.md h3,.md h4 { font-weight:700; color:#111827; margin:1em 0 0.4em; line-height:1.3; }
+    .md h1 { font-size:16px; } .md h2 { font-size:14px; } .md h3,.md h4 { font-size:12px; }
+    .md p { margin:0.5em 0; }
+    .md ul,.md ol { padding-left:1.4em; margin:0.5em 0; }
+    .md li { margin:0.2em 0; }
+    .md ul { list-style-type:disc; } .md ol { list-style-type:decimal; }
+    .md strong { font-weight:700; } .md em { font-style:italic; }
+    .md code { font-family:monospace; font-size:10px; background:#f3f4f6; padding:1px 4px; border-radius:3px; }
+    .md pre { background:#f3f4f6; border-radius:6px; padding:10px 14px; margin:0.6em 0; overflow:auto; }
+    .md pre code { background:transparent; padding:0; }
+    .md blockquote { border-left:3px solid #c7d6ff; margin:0.6em 0; padding:0.2em 10px; color:#6b7280; }
+    .md hr { border:none; border-top:1px solid #e5e7eb; margin:0.8em 0; }
+    .md a { color:#1f49e0; }
+    .md table { width:100%; border-collapse:collapse; font-size:11px; margin:0.6em 0; }
+    .md th { text-align:left; font-weight:600; background:#f9fafb; padding:6px 10px; border:1px solid #e5e7eb; }
+    .md td { padding:6px 10px; border:1px solid #e5e7eb; }
   </style>
 </head>
 <body>

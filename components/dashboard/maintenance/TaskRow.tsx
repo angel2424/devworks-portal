@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus, setTaskCompletedDate, updateTaskDuration, updateTaskWeek } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
-import { Eye, EyeOff, NotebookPen, User, ChevronDown } from "lucide-react";
+import { cycleTaskStatus, setTaskSkipped, saveTaskNotes, toggleTaskInternalOnly, setTaskStatus, setTaskCompletedDate, updateTaskDuration, updateTaskWeek, deleteTask } from "@/app/(dashboard)/dashboard/maintenance/[planId]/actions";
+import { Eye, EyeOff, NotebookPen, User, ChevronDown, Trash2 } from "lucide-react";
 import { DurationInput } from "@/components/ui/duration-input";
 import {
   DropdownMenu,
@@ -56,10 +56,21 @@ export function TaskRow({ task, statuses, planId }: Props) {
   const [isPendingDate, startDate] = useTransition();
   const [isPendingDuration, startDuration] = useTransition();
   const [isPendingWeek, startWeek] = useTransition();
+  const [isPendingDelete, startDelete] = useTransition();
+  const [deleteArmed, setDeleteArmed] = useState(false);
   const [notesOpen, setNotesOpen] = useState(!!task.notes);
   const [notesValue, setNotesValue] = useState(task.notes ?? "");
 
-  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus || isPendingDate || isPendingDuration || isPendingWeek;
+  const isPending = isPendingCycle || isPendingSkip || isPendingNotes || isPendingInternal || isPendingStatus || isPendingDate || isPendingDuration || isPendingWeek || isPendingDelete;
+
+  function handleDelete() {
+    if (!deleteArmed) {
+      setDeleteArmed(true);
+      setTimeout(() => setDeleteArmed(false), 2000);
+      return;
+    }
+    startDelete(() => deleteTask(task.id, planId));
+  }
 
   function handleDurationChange(duration: string | null) {
     startDuration(() => updateTaskDuration(task.id, duration, planId));
@@ -337,6 +348,21 @@ export function TaskRow({ task, statuses, planId }: Props) {
               </svg>
             </button>
           )}
+
+          {/* Delete */}
+          <button
+            onClick={handleDelete}
+            disabled={isPendingDelete}
+            title={deleteArmed ? "¿Confirmar eliminación?" : "Eliminar tarea"}
+            className={cn(
+              "p-1.5 rounded-md transition-all disabled:opacity-50",
+              deleteArmed
+                ? "text-red-600 bg-red-100 ring-1 ring-red-300"
+                : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+            )}
+          >
+            <Trash2 size=".8rem" />
+          </button>
         </div>
       </div>
     </div>

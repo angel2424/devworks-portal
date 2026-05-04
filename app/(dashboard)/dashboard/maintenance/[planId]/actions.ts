@@ -201,6 +201,16 @@ export async function updateTaskWeek(taskId: string, weekNumber: number, planId:
   revalidatePath(`/dashboard/maintenance/${planId}`);
 }
 
+export async function deleteTask(taskId: string, planId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("maintenance_tasks")
+    .delete()
+    .eq("id", taskId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/maintenance/${planId}`);
+}
+
 // ─── Metrics ──────────────────────────────────────────────────────────────────
 
 export async function saveMetrics(

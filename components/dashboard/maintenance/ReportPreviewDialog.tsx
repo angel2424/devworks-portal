@@ -1,5 +1,7 @@
 "use client"
 
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { Printer, X } from "lucide-react"
@@ -357,9 +359,9 @@ export function ReportPreviewDialog({
               <section>
                 <SectionHeading>Observaciones y próximos pasos</SectionHeading>
                 <div className="rounded-xl border border-gray-200 bg-white p-4">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700">
-                    {metrics.notes}
-                  </p>
+                  <div className="md-preview">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{metrics.notes}</ReactMarkdown>
+                  </div>
                 </div>
               </section>
             )}
